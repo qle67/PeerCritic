@@ -1,9 +1,9 @@
 from typing import Annotated
 
-from fastapi import FastAPI, Depends
-from sqlmodel import Session
+from fastapi import FastAPI, Depends, Query
+from sqlmodel import Session, select
 
-from model import User
+from model.User import User
 from model.database import create_db_and_tables, engine
 
 app = FastAPI()
@@ -25,3 +25,8 @@ def create_user(user: User, session: SessionDep) -> User:
     session.commit()
     session.refresh(user)
     return user
+
+@app.get("/users/")
+def read_users(session: SessionDep, offset: int = 0, limit: Annotated[int, Query(le=100)] = 100) -> list[User]:
+    users = session.exec(select(User).offset(offset).limit(limit)).all()
+    return users
