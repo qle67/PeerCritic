@@ -1,0 +1,281 @@
+:root {
+  --font-family-inter: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --text-rgb-250-232-232: rgba(250, 232, 232, 1);
+  --text-white: rgba(255, 255, 255, 1);
+  --text-rgb-217-179-179: rgba(217, 179, 179, 1);
+  --text-black: rgba(0, 0, 0, 1);
+  --text-rgb-215-152-114: rgba(215, 152, 114, 1);
+
+  --color-bg: rgba(248, 232, 221, 1); /*main background */
+  --color-card-bg: rgba(250, 232, 232, 1); /*card background*/
+  --color-border: rgba(217, 129, 68, 1); /*border color */
+  --color-primary: rgba(229, 131, 26, 1); /* button color */
+  --color-bar: rgba(238, 78, 15, 1); /* top bar color */
+}
+
+/* Helper classes for text */
+.text-rgb-250-232-232 {
+  color: var(--text-rgb-250-232-232);
+}
+
+.text-white {
+  color: var(--text-white);
+}
+
+.text-rgb-217-179-179 {
+  color: var(--text-rgb-217-179-179);
+}
+
+.text-black {
+  color: var(--text-black);
+}
+
+.text-rgb-215-152-114 {
+  color: var(--text-rgb-215-152-114);
+}
+
+/* CSS Reset */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: var(--font-family-inter);
+  background-color: var(--color-bg);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* class names should match App.jsx */
+
+.page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg);
+}
+
+.topBar {
+  height: 70px;
+  width: 100%;
+  background-color: var(--color-bar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-weight: 800;
+  font-size: 1.4rem;
+  color: var(--text-rgb-250-232-232);
+}
+
+.brandMain {
+  letter-spacing: 0.04em;
+}
+
+.navLinks {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.navLink {
+  background: none;
+  border: none;
+  color: var(--text-white);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.navLink:hover {
+  opacity: 1;
+}
+
+.navLinkActive {
+  text-decoration: underline;
+}
+
+.topBarRight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.searchBox {
+  background-color: rgba(248, 232, 221, 1);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  border: 1px solid var(--color-border);
+}
+.searchInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.9rem;
+  color: var(--text-black);
+}
+
+.searchInput::placeholder {
+  color: var(--text-rgb-215-152-114);
+}
+
+.loginChip {
+  background: transparent;
+  border-radius: 999px;
+  border: 1px solid rgba(250, 232, 232, 1);
+  padding: 0.35rem 0.9rem;
+  color: var(--text-white);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.authMain {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem 1.5rem;
+}
+
+.center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+/* login panel */
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--color-card-bg);
+  border-radius: 1rem;
+  padding: 1.75rem 1.5rem;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.card h1 {
+  margin-bottom: 0.25rem;
+  font-size: 1.6rem;
+  color: var(--text-black);
+}
+
+.muted {
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  color: var(--text-rgb-215-152-114);
+}
+
+/* Form */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.field span {
+  color: var(--text-rgb-215-152-114);
+}
+
+.field input {
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+  padding: 0.6rem 0.7rem;
+  background-color: var(--color-bg);
+  color: var(--text-black);
+  font-size: 0.95rem;
+}
+
+.field input::placeholder {
+  color: var(--text-rgb-215-152-114);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(229, 131, 26, 0.25);
+}
+
+/* Button */
+
+.btn {
+  margin-top: 0.5rem;
+  width: 100%;
+  border-radius: 999px;
+  border: none;
+  padding: 0.7rem 1rem;
+  background-color: var(--color-primary);
+  color: var(--text-white);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.25);
+  transition:
+    transform 0.12s ease-out,
+    box-shadow 0.12s ease-out,
+    opacity 0.12s ease-out;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.3);
+}
+
+.btn:disabled {
+  opacity: 0.7;
+  cursor: default;
+  transform: none;
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.25);
+}
+
+/* Notification Messages */
+
+.success {
+  margin: 0;
+  color: #16a34a;
+  font-size: 0.9rem;
+}
+
+.error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.9rem;
+  white-space: pre-wrap;
+}
