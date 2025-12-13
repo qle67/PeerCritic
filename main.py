@@ -1,32 +1,20 @@
-from typing import Annotated
+from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, Query
-from sqlmodel import Session, select
+from fastapi import FastAPI
 
-from model.User import User
-from model.database import create_db_and_tables, engine
+from model.database import create_db_and_tables
+from router import Authentication
+from router.Admin import admin
 
-app = FastAPI()
 
-@app.on_event("startup")
-def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     create_db_and_tables()
+    yield
 
-def get_session():
-    with Session(engine) as session:
-        yield session
+app = FastAPI(lifespan=lifespan)
 
-
-SessionDep = Annotated[Session, Depends(get_session)]
-    
-@app.post("/users/")
-def create_user(user: User, session: SessionDep) -> User:
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-    return user
-
-@app.get("/users/")
-def read_users(session: SessionDep, offset: int = 0, limit: Annotated[int, Query(le=100)] = 100) -> list[User]:
-    users = session.exec(select(User).offset(offset).limit(limit)).all()
-    return users
+# Mount admin to your app
+admin.mount_to(app)
+ 
+app.include_router(Authentication.router)
