@@ -4,11 +4,13 @@ import './Signup.css'
 function App() {
   const [form, setForm] = useState({
     username: "",
-    email: "",
+    password: "",
+    confirmPassword: "",
   });
 
   const [status, setStatus] = useState("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [mode, setMode] = useState("signup");
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -20,13 +22,22 @@ function App() {
     setStatus("loading");
     setErrorMessage("");
 
+    if (mode === "signup" && form.password !== form.confirmPassword) {
+        setStatus("error");
+        setErrorMessage("Passwords do not match");
+        return;
+    }
+
     try {
-      const response = await fetch("http://localhost:8000/users/", {
+      const response = await fetch("http://localhost:8000/signup", {
         method:"POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body:JSON.stringify(form),
+        body:JSON.stringify({
+            username: form.username,
+            password: form.password,
+        }),
       });
 
       if (!response.ok) {
@@ -38,7 +49,7 @@ function App() {
       console.log("Account Created:", data);
 
       setStatus("success");
-      setForm({username: "", email: ""});
+      setForm({username: "", password: "", confirmPassword: ""});
     }
     catch(error) {
       console.error(error);
@@ -76,11 +87,23 @@ function App() {
 
     <main className="authMain">
       <div className="card">
-        <h1>Welcome</h1>
-        <p className="muted">
-          create a PeerCritic account.
-        </p>
+        
+        <div className="authTabs">
+            <button className={`authTab ${mode === "login" ? "activeTab" : ""}`}
+            onClick={() => {setMode("login"); setStatus("idle"); setErrorMessage(""); setForm({ username: "", password: "", confirmPassword: ""});
+            }} >LOGIN</button>
+
+            <button className={`authTab ${mode === "signup" ? "activeTab" : ""}`}
+            onClick={() => {setMode("signup"); setForm({ username: "", password: "", confirmPassword: ""});
+
+            }} >SIGNUP</button>
+        </div>
+
         <form onSubmit={handleSubmit} className="form">
+            {mode === "signup" && (
+            <p className="muted">Create a PeerCritic account.</p>
+            )}
+
           <label className="field">
             <span>Username</span>
             <input
@@ -93,18 +116,31 @@ function App() {
           </label>
           
           <label className="field">
-            <span>Email</span>
+            <span>Password</span>
             <input
-            type="email"
-            name="email"
-            value={form.email}
+            type="password"
+            name="password"
+            value={form.password}
             onChange={handleChange}
             required
             />
           </label>
 
+        {mode === "signup" && (
+            <label className="field">
+            <span>Confirm Password</span>
+            <input
+            type="password"
+            name="confirmPassword"
+            value={form.confirmPassword}
+            onChange={handleChange}
+            required
+            />
+          </label>
+        )}
+
           <button className="btn" type="submit" disabled={status === "loading"}>
-            {status === "loading" ? "Creating..." : "Sign up"}
+            {status === "loading" ? "Processing..." : mode === "signup" ? "Sign up" : "Login"}
           </button>
         </form>
 

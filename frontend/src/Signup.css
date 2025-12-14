@@ -62,8 +62,6 @@ img {
   height: auto;
 }
 
-/* class names should match App.jsx */
-
 .page {
   min-height: 100vh;
   width: 100%;
@@ -160,6 +158,43 @@ img {
   justify-content: center;
   align-items: center;
   padding: 2rem 1.5rem;
+}
+
+.authTabs {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.authTab {
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    font-weight: 800;;
+    cursor: pointer;
+    color: var(--text-black);
+    padding-bottom: 0.3rem;
+    position: relative;
+}
+
+.authTab:hover {
+    opacity: 0.7;
+}
+
+.activeTab {
+    color: var(--text-black);
+}
+
+.activeTab::after {
+    content: "";
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background-color: var(--color-primary);
+    border-radius: 10px;
 }
 
 .center {
