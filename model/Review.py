@@ -2,12 +2,14 @@ from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import SQLModel, Field, Relationship
 
+from model.BaseTable import BaseTable
+
 if TYPE_CHECKING:
     from model.Movie import Movie
     from model.Song import Song
     from model.User import User
 
-class Review(SQLModel, table=True):
+class Review(BaseTable, table=True):
     review_id: int | None = Field(default=None, primary_key=True)
     review: str | None = Field(nullable=True)
     review_rating: float

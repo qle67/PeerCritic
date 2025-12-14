@@ -13,9 +13,11 @@ async def lifespan(app: FastAPI):
     create_db_and_tables()
     yield
 
-origins = ["http://localhost:5173",]
+origins = ["http://localhost:5173", "http://localhost:3000",]
 
 app = FastAPI(lifespan=lifespan)
+
+
 
 app.add_middleware(
     CORSMiddleware, 

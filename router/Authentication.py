@@ -14,7 +14,8 @@ from pydantic import BaseModel
 from sqlmodel import select
 from starlette import status
 
-from model.User import User, UserPublic, UserCreate
+from model.Profile import Profile
+from model.User import User, UserPublic, UserCreate, UserProfilePublic
 from model.database import SessionDep
 
 load_dotenv()
@@ -114,6 +115,9 @@ async def signup(user_create: UserCreate, session: SessionDep) -> Token:
     session.add(user)
     session.commit()
     session.refresh(user)
+    profile = Profile(first_name=user_create.first_name, last_name=user_create.last_name, user_id=user.user_id)
+    session.add(profile)
+    session.commit()
     return create_access_token(user.username)
         
 
@@ -129,9 +133,11 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], sess
     return create_access_token(form_data.username)
 
 
-@router.get("/current_user", response_model=UserPublic)
+@router.get("/current_user", response_model=UserProfilePublic)
 async def get_current_user(current_user: Annotated[User, Depends(get_current_user)]):
-    return current_user
+    profile = current_user.profile
+    return UserProfilePublic(user_id=current_user.user_id, username=current_user.username,
+                             first_name=profile.first_name, last_name=profile.last_name)
 
 
 @router.get("/users/{user_id}", response_model=UserPublic)

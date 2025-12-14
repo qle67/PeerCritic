@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from sqlmodel import SQLModel, Field, Relationship
 
+from model.BaseTable import BaseTable
 from model.SongGenre import SongGenre
 
 if TYPE_CHECKING:
@@ -11,7 +12,7 @@ if TYPE_CHECKING:
 from model.MovieGenre import MovieGenre
 
 
-class Genre(SQLModel, table=True):
+class Genre(BaseTable, table=True):
     genre_id: int | None = Field(default=None, primary_key=True)
     genre_name: str
 

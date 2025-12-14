@@ -1,9 +1,10 @@
 from sqlmodel import SQLModel, Field, Relationship
 
+from model.BaseTable import BaseTable
 from model.User import User
 
 
-class Profile(SQLModel, table=True):
+class Profile(BaseTable, table=True):
     profile_id: int | None = Field(default=None, primary_key=True)
     first_name: str = Field(nullable=False)
     last_name: str = Field(nullable=False)

@@ -1,9 +1,10 @@
 from sqlmodel import SQLModel, Field, Relationship
 
+from model.BaseTable import BaseTable
 from model.Movie import Movie
 
 
-class Episode(SQLModel, table=True):
+class Episode(BaseTable, table=True):
     episode_id: int | None = Field(default=None, primary_key=True)
     episode_name: str
     season: int | None = Field(nullable=True)
