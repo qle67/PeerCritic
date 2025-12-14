@@ -35,6 +35,7 @@ class UserProfilePublic(BaseTable):
     username: str
     first_name: str
     last_name: str
-
+    email: str | None
+    avatar: str | None
 
     

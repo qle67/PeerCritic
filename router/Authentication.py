@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 from starlette import status
 
-from model.Profile import Profile
+from model.Profile import Profile, ProfileUpdate
 from model.User import User, UserPublic, UserCreate, UserProfilePublic
 from model.database import SessionDep
 
@@ -134,12 +134,27 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], sess
 
 
 @router.get("/current_user", response_model=UserProfilePublic)
-async def get_current_user(current_user: Annotated[User, Depends(get_current_user)]):
+async def current_user(current_user: Annotated[User, Depends(get_current_user)]):
     profile = current_user.profile
     return UserProfilePublic(user_id=current_user.user_id, username=current_user.username,
-                             first_name=profile.first_name, last_name=profile.last_name)
+                             first_name=profile.first_name, last_name=profile.last_name, 
+                             email=profile.email, avatar=profile.avatar)
 
 
 @router.get("/users/{user_id}", response_model=UserPublic)
 async def read_user(current_user: Annotated[User, Depends(does_user_have_access)] ) -> UserPublic:
-    return current_user
+    return UserPublic(user_id=current_user.user_id, username=current_user.username)
+
+
+@router.put("/users/{user_id}", response_model=UserProfilePublic)
+async def update_user(profile_update: ProfileUpdate, current_user: Annotated[User, Depends(get_current_user)], session: SessionDep) -> UserProfilePublic:
+    profile = current_user.profile
+    profile.first_name = profile_update.first_name
+    profile.last_name = profile_update.last_name
+    profile.email = profile_update.email
+    profile.avatar = profile_update.avatar
+    session.add(profile)
+    session.commit()
+    session.refresh(profile)
+    return UserProfilePublic(user_id=current_user.user_id, username=current_user.username,
+                             first_name=profile.first_name, last_name=profile.last_name, email=profile.email, avatar=profile.avatar)

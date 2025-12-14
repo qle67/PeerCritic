@@ -13,3 +13,11 @@ class Profile(BaseTable, table=True):
     
     user_id: int | None = Field(default=None, foreign_key="user.user_id")
     user: User | None = Relationship()
+    
+
+class ProfileUpdate(BaseTable):
+    first_name: str
+    last_name: str
+    email: str | None
+    avatar: str | None
+    

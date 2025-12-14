@@ -117,9 +117,9 @@ export default function Navbar() {
             ? (
               <div>
                 <div className="text-lg font-semibold tracking-tighter">
-                  <span className="mr-5">
+                  <a href="/profile" className="mr-5">
                     Hello, {user.firstName} {user.lastName}
-                  </span>
+                  </a>
                   <Button asChild size="sm">
                     <a href="/" onClick={logout}>LOGOUT</a>
                   </Button>
