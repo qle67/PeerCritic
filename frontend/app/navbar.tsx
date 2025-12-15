@@ -51,7 +51,7 @@ export default function Navbar() {
   useEffect(() => {
     fetchUser();
   }, []);
-
+  // Get current logged in information
   async function fetchUser() {
     if (isUserLoggedIn()) {
       try {
@@ -68,7 +68,8 @@ export default function Navbar() {
       }
     }
   }
-
+  
+  // check if user is logged in (local storage will store access token)
   function isUserLoggedIn() {
     const accessToken = localStorage.getItem("accessToken");
     if (accessToken != null && accessToken != "") {

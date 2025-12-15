@@ -8,6 +8,7 @@ from model.MovieDirector import MovieDirector
 from model.MovieGenre import MovieGenre
 from model.MovieWriter import MovieWriter
 
+# Condition to break circular import
 if TYPE_CHECKING:
     from model.Writer import Writer
     from model.Actor import Actor
@@ -16,20 +17,26 @@ if TYPE_CHECKING:
     from model.Review import Review
     from model.Episode import Episode
 
-
+# Create Movie database table
 class Movie(BaseTable, table=True):
-    movie_id: int | None = Field(default=None, primary_key=True)
-    movie_name: str
-    description: str | None = Field(nullable=True)
-    year: int | None = Field(nullable=True)
-    length: str | None = Field(nullable=True)
-    cover: str | None = Field(nullable=True)
-    movie_rating: float | None = Field(nullable=True)
-    movie_rating_count: int | None = Field(nullable=True)
+    movie_id: int | None = Field(default=None, primary_key=True)    # Create id
+    movie_name: str                                                 # required field
+    description: str | None = Field(nullable=True)                  # Optional field
+    year: int | None = Field(nullable=True)                         # Optional field
+    length: str | None = Field(nullable=True)                       # Optional field
+    cover: str | None = Field(nullable=True)                        # Optional field
+    movie_rating: float | None = Field(nullable=True)               # Optional field
+    movie_rating_count: int | None = Field(nullable=True)           # Optional field
 
+    # Create many-to-many relationship between Movie and Writer
     writers: list["Writer"] = Relationship(back_populates="movies", link_model=MovieWriter)
+    # Create many-to-many relationship between Movie and Actor
     actors: list["Actor"] = Relationship(back_populates="movies", link_model=MovieActor)
+    # Create many-to-many relationship between Movie and Director
     directors: list["Director"] = Relationship(back_populates="movies", link_model=MovieDirector)
+    # Create many-to-many relationship between Movie and Genre
     genres: list["Genre"] = Relationship(back_populates="movies", link_model=MovieGenre)
+    # Create many-to-many relationship between Movie and Episode
     episodes: list["Episode"] = Relationship(back_populates="movie")
+    # Create many-to-many relationship between Movie and Review
     reviews: list["Review"] = Relationship(back_populates="movie")

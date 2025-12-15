@@ -5,18 +5,20 @@ from dotenv import load_dotenv
 from fastapi import Depends
 from sqlmodel import SQLModel, create_engine, Session
 
+# Load environment variable or secret from .env file
 load_dotenv()
 postgresql_url = os.getenv("DATABASE_URL")
 engine = create_engine(postgresql_url)
 
-
+# Create tables in the database
 def create_db_and_tables():
     SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
 
+# Open database connection
 def get_session():
     with Session(engine) as session:
         yield session
 
-
+# The database connection
 SessionDep = Annotated[Session, Depends(get_session)]

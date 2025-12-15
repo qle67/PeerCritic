@@ -29,6 +29,7 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
+# Configuration for admin user
 users = {
     "admin": {
         "name": "Admin",
@@ -37,6 +38,8 @@ users = {
     "viewer": {"name": "Viewer", "avatar": "guest.png", "roles": ["read"]},
 }
 
+
+# Setting for admin login
 class UsernameAndPasswordProvider(AuthProvider):
     """
     This is only for demo purpose, it's not a better
@@ -91,6 +94,7 @@ class UsernameAndPasswordProvider(AuthProvider):
         request.session.clear()
         return response
 
+# Create Admin dashboard setting
 admin = Admin(engine, 
               title="PeerCritic",
               base_url="/admin",
@@ -98,7 +102,7 @@ admin = Admin(engine,
               middlewares=[Middleware(SessionMiddleware, secret_key=SECRET_KEY)],
               )
 
-# Add view
+# Add view for each table
 admin.add_view(ModelView(User))
 admin.add_view(ModelView(Profile))
 admin.add_view(ModelView(Artist))

@@ -18,10 +18,12 @@ from model.Profile import Profile, ProfileUpdate
 from model.User import User, UserPublic, UserCreate, UserProfilePublic
 from model.database import SessionDep
 
+# Get secret passwords from environment
 load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY')
 ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')
 
+# Setting for authentication
 class Settings(BaseModel):
     authjwt_secret_key: str = SECRET_KEY
     authjwt_access_token_expire: int = int(ACCESS_TOKEN_EXPIRE_MINUTES) * 60
@@ -30,8 +32,10 @@ class Settings(BaseModel):
 def get_config():
     return Settings()
 
+# Setting for hashing password
 password_hash = PasswordHash.recommended()
 
+# Setting for OAuth2 authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 router = APIRouter()

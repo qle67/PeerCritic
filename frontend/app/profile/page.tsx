@@ -53,7 +53,7 @@ export default function Page() {
       console.error(error);
     }
   }
-  
+  // Update profile function
   async function update(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
     try {
