@@ -169,14 +169,32 @@ export default function Navbar() {
                     ))}
                   </Accordion>
 
-                  <div className="flex flex-col gap-3">
-                    <Button asChild variant="outline">
-                      <a href="/login">LOGIN</a>
-                    </Button>
-                    <Button asChild>
-                      <a href="/signup">SIGNUP</a>
-                    </Button>
-                  </div>
+                  {user != null
+                    ? (
+                      <div>
+                        <div className="text-lg font-semibold tracking-tighter">
+                          <a href="/profile" className="mr-5">
+                            Hello, {user.firstName} {user.lastName}
+                          </a>
+                          <Button asChild size="sm">
+                            <a href="/" onClick={logout}>LOGOUT</a>
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                    : (
+                      <div className="flex flex-col gap-3">
+                        <Button asChild variant="outline">
+                          <a href="/login">LOGIN</a>
+                        </Button>
+                        <Button asChild>
+                          <a href="/signup">SIGNUP</a>
+                        </Button>
+                      </div>
+                    )
+                  }
+
+
                 </div>
               </SheetContent>
             </Sheet>
