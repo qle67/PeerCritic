@@ -12,7 +12,7 @@ engine = create_engine(postgresql_url)
 
 # Create tables in the database
 def create_db_and_tables():
-    SQLModel.metadata.drop_all(engine)
+    # SQLModel.metadata.drop_all(engine)
     SQLModel.metadata.create_all(engine)
 
 # Open database connection

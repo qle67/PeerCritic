@@ -76,9 +76,9 @@ export default function Page() {
   }
   
   return (
-    <div className="container mx-auto">
+    <div className="mx-auto">
       <Navbar />
-      <div className="">
+      <div className="container mx-auto">
         <h1 className="text-4xl font-bold">User Profile</h1>
         <div className="w-full max-w-md my-10">
           <FieldGroup>

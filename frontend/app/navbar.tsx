@@ -83,27 +83,27 @@ export default function Navbar() {
   }
 
   return (
-    <section className="py-4">
-      <div className="container mx-auto">
+    <section>
+      <div className="mx-auto">
         {/* Desktop Menu */}
-        <nav className="hidden items-center justify-between lg:flex">
+        <nav className="hidden items-center justify-between lg:flex bg-orange-500 p-2">
           <div className="flex items-center gap-6">
             {/* Logo */}
             <a href="/" className="flex items-center gap-2">
-              <span className="text-lg font-semibold tracking-tighter">
+              <span className="text-2xl font-bold tracking-tighter text-white">
                 PeerCritic
               </span>
             </a>
             <div className="flex items-center">
               <NavigationMenu>
-                <NavigationMenuList>
+                <NavigationMenuList className="bg-orange-400 rounded-lg">
                   {menu.map((item) => (
                     <NavigationMenuItem key={item.title}>
                       <NavigationMenuLink
                         href={item.url}
-                        className="bg-background hover:bg-muted hover:text-accent-foreground group 
+                        className="bg-background hover:bg-orange-200 hover:text-accent-foreground group 
                                    inline-flex h-10 w-max items-center justify-center rounded-md px-4 
-                                   py-2 text-sm font-medium transition-colors">
+                                   py-2 text-sm font-medium transition-colors bg-orange-400 text-white">
                         {item.title}
                       </NavigationMenuLink>
                     </NavigationMenuItem>
@@ -111,7 +111,7 @@ export default function Navbar() {
                 </NavigationMenuList>
               </NavigationMenu>
             </div>
-            <Input type="search" placeholder="Search"/>
+            <Input className="bg-orange-800 text-white !placeholder-white w-100 rounded-full" type="search" placeholder="Search"/>
           </div>
 
           {user != null
@@ -129,10 +129,10 @@ export default function Navbar() {
             )
             : (
               <div className="flex gap-2">
-                <Button asChild variant="outline" size="sm">
+                <Button className="bg-orange-400 text-white" asChild variant="outline" size="sm">
                   <a href="/login">LOGIN</a>
                 </Button>
-                <Button asChild size="sm">
+                <Button className="bg-orange-800 text-white" asChild size="sm">
                   <a href="/signup">SIGNUP</a>
                 </Button>
               </div>
@@ -141,9 +141,9 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         <div className="block lg:hidden">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between text-2xl font-bold">
             {/* Logo */}
-            <a href="/" className="flex items-center gap-2">
+            <a href="/" className="flex items-center gap-2 ">
               PeerCritic
             </a>
             <Sheet>
@@ -155,7 +155,7 @@ export default function Navbar() {
               <SheetContent className="overflow-y-auto">
                 <SheetHeader>
                   <SheetTitle>
-                    <a href="/" className="flex items-center gap-2">
+                    <a href="/" className="flex items-center gap-2 font-bold">
                       PeerCritic
                     </a>
                   </SheetTitle>

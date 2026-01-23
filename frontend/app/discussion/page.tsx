@@ -4,7 +4,7 @@ import Navbar from "@/app/navbar";
 
 export default function Page() {
   return (
-    <div className="container mx-auto">
+    <div className="mx-auto">
       <Navbar />
       <div>
         <h1 className="text-4xl font-bold">Discussion Forum</h1>
