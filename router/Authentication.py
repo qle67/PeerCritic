@@ -119,7 +119,7 @@ async def signup(user_create: UserCreate, session: SessionDep) -> Token:
     session.add(user)
     session.commit()
     session.refresh(user)
-    profile = Profile(first_name=user_create.first_name, last_name=user_create.last_name, user_id=user.user_id)
+    profile = Profile(first_name=user_create.first_name, last_name=user_create.last_name, avatar=user_create.avatar, user_id=user.user_id)
     session.add(profile)
     session.commit()
     return create_access_token(user.username)

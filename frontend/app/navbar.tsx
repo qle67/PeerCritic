@@ -43,6 +43,7 @@ interface User {
   username: string;
   firstName: string;
   lastName: string;
+  avatar: string;
 }
 
 export default function Navbar() {
@@ -53,20 +54,29 @@ export default function Navbar() {
   }, []);
   // Get current logged in information
   async function fetchUser() {
-    if (isUserLoggedIn()) {
-      try {
-        const response = await axios.get("http://localhost:8000/current_user", {
-          headers: {
-            "Authorization": "Bearer " + localStorage.getItem("accessToken"),
-            "Accept": 'application/json'
-          }
-        });
-        console.log(response);
-        setUser(response.data);
-      } catch (error) {
-        console.error(error);
-      }
+    const token = localStorage.getItem("accessToken");
+    if(!token) {
+      setUser(null);
+      return;
     }
+
+    try {
+      const response = await axios.get("http://localhost:8000/current_user", {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+      });
+      console.log(response);
+      setUser(response.data);
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        localStorage.removeItem("accessToken");
+        setUser(null);
+        return;
+      }
+      console.error(error);
+    }
+
   }
   
   // check if user is logged in (local storage will store access token)
@@ -79,7 +89,8 @@ export default function Navbar() {
   }
   
   function logout() {
-    localStorage.setItem("accessToken", "");
+    localStorage.removeItem("accessToken");
+    setUser(null);
   }
 
   return (
@@ -117,8 +128,11 @@ export default function Navbar() {
           {user != null
             ? (
               <div>
-                <div className="text-lg font-semibold tracking-tighter">
-                  <a href="/profile" className="mr-5">
+                <div className="flex items-center gap-3 text-lg font-semibold tracking-tighter">
+                  <a href="/profile" className="flex items-center gap-2 mr-5">
+                  {user.avatar && (
+                    <img src={user.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover border border-orange-200"/>
+                  )}
                     Hello, {user.firstName} {user.lastName}
                   </a>
                   <Button asChild size="sm">
