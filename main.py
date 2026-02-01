@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 
 from model.database import create_db_and_tables
-from router import Authentication
+from router import Authentication, Movie
 from router.Admin import admin
 
 
@@ -30,3 +30,4 @@ app.add_middleware(
 admin.mount_to(app)
  
 app.include_router(Authentication.router)
+app.include_router(Movie.router)

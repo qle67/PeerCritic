@@ -40,3 +40,18 @@ class Movie(BaseTable, table=True):
     episodes: list["Episode"] = Relationship(back_populates="movie")
     # Create many-to-many relationship between Movie and Review
     reviews: list["Review"] = Relationship(back_populates="movie")
+    
+
+class MoviePublic(BaseTable): 
+    movie_id: int | None
+    movie_name: str
+    description: str | None
+    year: int | None
+    length: str | None
+    cover: str | None
+    movie_rating: float | None
+    movie_rating_count: int | None
+    writers: list[str]
+    actors: list[str]
+    directors: list[str]
+    genres: list[str]
