@@ -17,6 +17,7 @@ from starlette import status
 from model.Profile import Profile, ProfileUpdate
 from model.User import User, UserPublic, UserCreate, UserProfilePublic
 from model.database import SessionDep
+from model.Review import Review
 
 # Get secret passwords from environment
 load_dotenv()
@@ -119,7 +120,7 @@ async def signup(user_create: UserCreate, session: SessionDep) -> Token:
     session.add(user)
     session.commit()
     session.refresh(user)
-    profile = Profile(first_name=user_create.first_name, last_name=user_create.last_name, user_id=user.user_id)
+    profile = Profile(first_name=user_create.first_name, last_name=user_create.last_name, avatar=user_create.avatar, user_id=user.user_id)
     session.add(profile)
     session.commit()
     return create_access_token(user.username)
@@ -162,3 +163,8 @@ async def update_user(profile_update: ProfileUpdate, current_user: Annotated[Use
     session.refresh(profile)
     return UserProfilePublic(user_id=current_user.user_id, username=current_user.username,
                              first_name=profile.first_name, last_name=profile.last_name, email=profile.email, avatar=profile.avatar)
+
+@router.get("/my/reviews")
+async def get_my_reviews(
+    current_user: Annotated[User, Depends(get_current_user)], session:SessionDep):
+    return session.exec(select(Review).where(Review.user_id == current_user.user_id)).all()

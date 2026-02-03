@@ -2,9 +2,10 @@
 
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import {Field, FieldDescription, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
+import { AvatarDropDown, DEFAULT_AVATARS } from "@/components/ui/avatarDropDown";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import axios from 'axios';
 import {useRouter} from 'next/navigation';
 
@@ -15,6 +16,10 @@ export default function Page() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // avatars
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(DEFAULT_AVATARS[0]);
+  const [submitting, setSubmitting] = useState(false);
 
   const { push } = useRouter();
 
@@ -30,6 +35,7 @@ export default function Page() {
         password,
         firstName,
         lastName,
+        avatar: selectedAvatar,
       });
       console.log(response.data);
       localStorage.setItem("accessToken", response.data.access_token);
@@ -114,6 +120,10 @@ export default function Page() {
                   ? (<FieldError>Passwords don't match!</FieldError>)
                   : (<FieldDescription>Please confirm your password.</FieldDescription>)
                 }
+              </Field>
+              <Field>
+                <FieldLabel>Avatar</FieldLabel>
+                <AvatarDropDown selected={selectedAvatar} setSelected={setSelectedAvatar}/>
               </Field>
               <FieldGroup>
                 <Field>

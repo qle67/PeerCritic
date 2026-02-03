@@ -34,6 +34,7 @@ class UserCreate(BaseTable):
     password: str
     first_name: str
     last_name: str
+    avatar: str | None = None
 
 # Create Data transfer object (DTO) for showing Profile information public with 
 class UserProfilePublic(BaseTable):
