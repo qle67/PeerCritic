@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import axios from 'axios';
+import { Star } from "lucide-react";
 
 interface User {
   userId: number;
@@ -233,7 +234,10 @@ export default function Page() {
                       size="sm"
                       variant={activeTab === t.key ? "default" : "ghost"}
                       onClick={() => setActiveTab(t.key)}
-                      className="rounded-full px-4"
+                      className={`rounded-full px-4 border-orange-300 ${activeTab === t.key
+                          ? "bg-orange-400 text-white hover:bg-orange-500"
+                          : "bg-background text-black hover:bg-orange-100"
+                        }`}
                     >
                       <span className="mr-2">{t.label}</span>
                       <span className={`text-xs ${activeTab === t.key ? "text-primary-foreground/90" : "text-muted-foreground"}`}>
@@ -311,9 +315,13 @@ export default function Page() {
                               </div>
 
                               {/*Rating pill*/}
-                              <Badge variant="secondary" className="shrink-0 px-3 py-1 text-sm font-medium">
-                                {r.reviewRating.toFixed(1)}/10
-                              </Badge>
+                              <div className="shrink-0 flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1">
+                                <Star className="h-4 w-4 fill-[#F3B413] text-[#F3B413]" />
+                                <span className="text-sm font-semibold text-blue-700">
+                                  {r.reviewRating.toFixed(1)}
+                                </span>
+                                <span className="text-xs text-muted-foreground">/10</span>
+                              </div>
                             </div>
 
                             {/*Preview*/}
