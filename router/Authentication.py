@@ -163,8 +163,3 @@ async def update_user(profile_update: ProfileUpdate, current_user: Annotated[Use
     session.refresh(profile)
     return UserProfilePublic(user_id=current_user.user_id, username=current_user.username,
                              first_name=profile.first_name, last_name=profile.last_name, email=profile.email, avatar=profile.avatar)
-
-@router.get("/my/reviews")
-async def get_my_reviews(
-    current_user: Annotated[User, Depends(get_current_user)], session:SessionDep):
-    return session.exec(select(Review).where(Review.user_id == current_user.user_id)).all()
