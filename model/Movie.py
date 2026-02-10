@@ -15,7 +15,8 @@ if TYPE_CHECKING:
     from model.Director import Director
     from model.Genre import Genre
     from model.Review import Review
-    from model.Episode import Episode
+    from model.Episode import Episode, EpisodePublic
+
 
 # Create Movie database table
 class Movie(BaseTable, table=True):
@@ -41,7 +42,7 @@ class Movie(BaseTable, table=True):
     # Create many-to-many relationship between Movie and Review
     reviews: list["Review"] = Relationship(back_populates="movie")
     
-
+# Create public API response schema for detailed movie view
 class MoviePublic(BaseTable): 
     movie_id: int | None
     movie_name: str
@@ -55,3 +56,13 @@ class MoviePublic(BaseTable):
     actors: list[str]
     directors: list[str]
     genres: list[str]
+    
+# Create public API response schema for movie cards
+class MovieCardPublic(BaseTable): 
+    movie_id: int | None
+    movie_name: str
+    year: int | None
+    length: str | None
+    cover: str | None
+    movie_rating: float | None
+    movie_rating_count: int | None

@@ -30,7 +30,7 @@ const menu = [
   },
   {
     title: "Music",
-    url: "/music"
+    url: "/songs"
   },
   {
     title: "Discussion",
