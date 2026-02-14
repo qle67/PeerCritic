@@ -32,7 +32,7 @@ async def get_songs(session: SessionDep, page: int = 1, size: int = 20) -> Page[
 
 # Define routes for finding similar songs based on shared genres
 @router.get("/songs/{song_id}/similar", response_model=Page[SongCardPublic])
-async def read_song(song_id: Annotated[int, Path(title = "id of song")], session: SessionDep, page: int = 1, size: int = 20) -> Page[SongCardPublic]:
+async def read_similar_song(song_id: Annotated[int, Path(title = "id of song")], session: SessionDep, page: int = 1, size: int = 20) -> Page[SongCardPublic]:
     song = session.exec(select(Song).where(Song.song_id == song_id)).first()
     genres = [genre.genre_id for genre in song.genres]
     set_page(Page[SongCardPublic])

@@ -53,7 +53,7 @@ async def get_shows(session: SessionDep, page: int = 1, size: int = 20) -> Page[
 
 # Define routes for finding similar movies or shows base on shared genres
 @router.get("/movies/{movie_id}/similar", response_model=Page[MovieCardPublic])
-async def read_movie(movie_id: Annotated[int, Path(title = "id of movie")], session: SessionDep, page: int = 1, size: int = 20) -> Page[MovieCardPublic]:
+async def read_similar_movie(movie_id: Annotated[int, Path(title = "id of movie")], session: SessionDep, page: int = 1, size: int = 20) -> Page[MovieCardPublic]:
     movie = session.exec(select(Movie).where(Movie.movie_id == movie_id)).first()
     genres = [genre.genre_id for genre in movie.genres]
     set_page(Page[MovieCardPublic])
