@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 
 from model.database import create_db_and_tables
-from router import Authentication, MovieRouter, SongRouter, Reviews
+from router import Authentication, FriendsRouter, MovieRouter, Reviews, SongRouter
 from router.Admin import admin
 
 
@@ -38,4 +38,8 @@ app.include_router(MovieRouter.router)
 # Register Song routes
 app.include_router(SongRouter.router)
 
+# Register Review routes
 app.include_router(Reviews.router)
+
+# Register Friends routes
+app.include_router(FriendsRouter.router)

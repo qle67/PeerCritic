@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import axios from 'axios';
-import { Star } from "lucide-react";
+import { Star, Check, X, RotateCcw, Plus } from "lucide-react";
 
 interface User {
   userId: number;
@@ -33,6 +33,14 @@ interface Review {
   songId: number | null;
 }
 
+interface Friend {
+  userId: number;
+  username: string;
+  firstName: string;
+  lastName: string;
+  avatar: string | null;
+}
+
 export default function Page() {
   const [userId, setUserId] = useState(0);
   const [firstName, setFirstName] = useState("");
@@ -40,11 +48,25 @@ export default function Page() {
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState<string | null>(DEFAULT_AVATARS[0]);
   const [updated, setUpdated] = useState(false);
+
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "movie" | "song">("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"default" | "high" | "low" | "title">("default");
+
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
+  const [friendQuery, setFriendQuery] = useState("");
+  const [friendsTab, setFriendsTab] = useState<"friends" | "received" | "sent">("friends");
+  const [receivedRequests, setReceivedRequests] = useState<Friend[]>([]);
+  const [sentRequests, setSentRequests] = useState<Friend[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [friendsMode, setFriendsMode] = useState<"list" | "add">("list");
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [userSearchResults, setUserSearchResults] = useState<Friend[]>([]);
+  const [loadingUserSearch, setLoadingUserSearch] = useState(false);
+
 
   const countByKind = (k: "movie" | "song") => reviews.filter(r => r.kind === k).length;
 
@@ -61,7 +83,7 @@ export default function Page() {
   async function fetchReviews(uid: number) {
     setLoadingReviews(true);
     try {
-      const res = await axios.get(`http://localhost:8000/my/reviews`, {
+      const res = await axios.get("http://localhost:8000/my/reviews", {
         headers: {
           Authorization: "Bearer " + localStorage.getItem("accessToken"),
           Accept: "application/json",
@@ -77,8 +99,203 @@ export default function Page() {
     }
   }
 
+  async function fetchFriends() {
+    setLoadingFriends(true);
+    try {
+      const res = await axios.get("http://localhost:8000/my/friends", {
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("accessToken"),
+          Accept: "application/json",
+        },
+      });
+      setFriends(res.data ?? []);
+    } catch (error) {
+      console.error(error);
+      setFriends([]);
+    }
+    finally {
+      setLoadingFriends(false);
+    }
+  }
+
+  const tabCounts = {
+    friends: friends.length,
+    received: receivedRequests.length,
+    sent: sentRequests.length,
+  };
+
+  const currentList =
+    friendsTab === "friends"
+      ? friends
+      : friendsTab === "received"
+        ? receivedRequests
+        : sentRequests;
+
+  const filteredCurrentList = currentList.filter((f) =>
+    f.username.toLowerCase().includes(friendQuery.toLowerCase())
+  );
+
+  const isLoadingFriendsSection = loadingFriends || loadingRequests;
+
+  async function sendFriendRequest(addresseeId: number) {
+    try {
+      await axios.post(`http://localhost:8000/my/friends/request/${addresseeId}`, null, {
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("accessToken"),
+          Accept: "application/json",
+        },
+      });
+
+      fetchSentRequests();
+      fetchFriends();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+
+  async function acceptRequest(requesterId: number) {
+    try {
+      await axios.post(`http://localhost:8000/my/friends/accept/${requesterId}`, null, {
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("accessToken"),
+          Accept: "application/json",
+        },
+      });
+
+      // refresh
+      fetchFriends();
+      fetchReceivedRequests();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function declineRequest(requesterId: number) {
+    setReceivedRequests((prev) => prev.filter((u) => u.userId !== requesterId));
+
+    try {
+      await axios.post(`http://localhost:8000/my/friends/decline/${requesterId}`, null, {
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("accessToken"),
+          Accept: "application/json",
+        },
+      });
+
+      fetchReceivedRequests();
+    } catch (error: any) {
+      console.error("declineRequest failed", {
+        message: error?.message,
+        code: error?.code,
+        url: error?.config?.url,
+        hasResponse: !!error?.response,
+        status: error?.response?.status,
+        data: error?.response?.data,
+      });
+
+      fetchReceivedRequests();
+    }
+  }
+
+  async function undoSentRequest(addresseeId: number) {
+    setSentRequests((prev) => prev.filter((u) => u.userId !== addresseeId));
+
+    try {
+      await axios.delete(`http://localhost:8000/my/friends/request/${addresseeId}`, {
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("accessToken"),
+          Accept: "application/json",
+        },
+      });
+
+      fetchSentRequests();
+    } catch (error) {
+      console.error(error);
+      fetchSentRequests();
+    }
+  }
+
+  async function fetchReceivedRequests() {
+    setLoadingRequests(true);
+    try {
+      const res = await axios.get("http://localhost:8000/my/friend_requests/received", {
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("accessToken"),
+          Accept: "application/json",
+        },
+      });
+      setReceivedRequests(res.data ?? []);
+    } catch (error) {
+      console.error(error);
+      setReceivedRequests([]);
+    } finally {
+      setLoadingRequests(false);
+    }
+  }
+
+  async function fetchSentRequests() {
+    setLoadingRequests(true);
+    try {
+      const res = await axios.get("http://localhost:8000/my/friend_requests/sent", {
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("accessToken"),
+          Accept: "application/json",
+        },
+      });
+      setSentRequests(res.data ?? []);
+    } catch (error) {
+      console.error(error);
+      setSentRequests([]);
+    } finally {
+      setLoadingRequests(false);
+    }
+  }
+
+  async function searchUsersByUsername(q: string) {
+    const trimmed = q.trim();
+    if (!trimmed) {
+      setUserSearchResults([]);
+      return;
+    }
+
+    setLoadingUserSearch(true);
+    try {
+      // TODO: implement backend for user search
+      const res = await axios.get("http://localhost:8000/users/search", {
+        params: { username: trimmed },
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("accessToken"),
+          Accept: "application/json",
+        },
+      });
+
+      setUserSearchResults(res.data ?? []);
+    } catch (error) {
+      console.error(error);
+      setUserSearchResults([]);
+    } finally {
+      setLoadingUserSearch(false);
+    }
+  }
+
+  useEffect(() => {
+    if (friendsMode !== "add") return;
+
+    const t = setTimeout(() => {
+      searchUsersByUsername(userSearchQuery);
+    }, 300);
+
+    return () => clearTimeout(t);
+  }, [friendsMode, userSearchQuery]);
+
+
   useEffect(() => {
     fetchUser();
+    fetchFriends();
+
+    //TODO: Implement friend requests (received/sent) on backend
+    fetchReceivedRequests();
+    fetchSentRequests();
   }, []);
 
   async function fetchUser() {
@@ -235,8 +452,8 @@ export default function Page() {
                       variant={activeTab === t.key ? "default" : "ghost"}
                       onClick={() => setActiveTab(t.key)}
                       className={`rounded-full px-4 border-orange-300 ${activeTab === t.key
-                          ? "bg-orange-400 text-white hover:bg-orange-500"
-                          : "bg-background text-black hover:bg-orange-100"
+                        ? "bg-orange-400 text-white hover:bg-orange-500"
+                        : "bg-background text-black hover:bg-orange-100"
                         }`}
                     >
                       <span className="mr-2">{t.label}</span>
@@ -342,6 +559,313 @@ export default function Page() {
                       </details>
                     ))}
                   </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/*Friends List*/}
+          <div className="w-full lg:col-span-1 self-start">
+            <div className="rounded-lg border border-border bg-background/80 backdrop-blur-sm shadow-sm flex flex-col min-h-0 max-h-[calc(100vh-16rem)]">
+              {/*Header*/}
+              <div className="px-4 pt-4 pb-3 border-b border-border/60">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold leading-none">Friends</h2>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {friendsMode === "add"
+                        ? (loadingUserSearch ? "Searching..." : "Find users to add")
+                        : (isLoadingFriendsSection ? "Loading..." : `${currentList.length} total`)}
+                    </p>
+                  </div>
+
+                  {/*Add/List friends button*/}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => {
+                      if (friendsMode === "list") {
+                        setFriendsMode("add");
+                        setUserSearchQuery("");
+                        setUserSearchResults([]);
+                      } else {
+                        setFriendsMode("list");
+                        setUserSearchQuery("");
+                        setUserSearchResults([]);
+                      }
+                    }}
+                    aria-label={friendsMode === "list" ? "Add friend" : "Close add friend"}
+                    title={friendsMode === "list" ? "Add friend" : "Close"}
+                  >
+                    {friendsMode === "list" ? (
+                      <Plus className="h-4 w-4" />
+                    ) : (
+                      <X className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+
+                {friendsMode === "add" ? (
+                  /*Add mode*/
+                  <div className="mt-3">
+                    <Input
+                      placeholder="Search users by username…"
+                      value={userSearchQuery}
+                      onChange={(e) => setUserSearchQuery(e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    {/*Tabs*/}
+                    <div className="mt-3 inline-flex items-center gap-1">
+                      {(
+                        [
+                          { key: "friends", label: "My Friends", count: tabCounts.friends },
+                          { key: "received", label: "Received", count: tabCounts.received },
+                          { key: "sent", label: "Sent", count: tabCounts.sent },
+                        ] as const
+                      ).map((t) => (
+                        <Button
+                          key={t.key}
+                          size="sm"
+                          variant={friendsTab === t.key ? "default" : "ghost"}
+                          onClick={() => setFriendsTab(t.key)}
+                          className={`rounded-full px-4 border-orange-300 ${friendsTab === t.key
+                              ? "bg-orange-400 text-white hover:bg-orange-500"
+                              : "bg-background text-black hover:bg-orange-100"
+                            }`}
+                        >
+                          <span className="mr-2">{t.label}</span>
+                          <span
+                            className={`text-xs ${friendsTab === t.key
+                                ? "text-primary-foreground/90"
+                                : "text-muted-foreground"
+                              }`}
+                          >
+                            ({t.count})
+                          </span>
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/*Search (friends/requests)*/}
+                    <div className="mt-3">
+                      <Input
+                        placeholder={
+                          friendsTab === "friends"
+                            ? "Search friends…"
+                            : friendsTab === "received"
+                              ? "Search friend requests received…"
+                              : "Search requests you've sent…"
+                        }
+                        value={friendQuery}
+                        onChange={(e) => setFriendQuery(e.target.value)}
+                        className="h-9 text-sm"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/*Body*/}
+              <div className="flex-1 overflow-y-auto min-h-0 p-2">
+                {friendsMode === "add" ? (
+                  <>
+                    {loadingUserSearch ? (
+                      <div className="px-2 py-2 text-sm text-muted-foreground">Searching…</div>
+                    ) : userSearchQuery.trim() && userSearchResults.length === 0 ? (
+                      <div className="px-2 py-2 text-sm text-muted-foreground">No users found.</div>
+                    ) : userSearchResults.length === 0 ? (
+                      <div className="px-2 py-2 text-sm text-muted-foreground">
+                        Type a username to search.
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {userSearchResults.map((u) => (
+                          <div
+                            key={u.userId}
+                            className="group flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted/60 transition-colors"
+                          >
+                            {/*Avatar*/}
+                            <div className="h-9 w-9 overflow-hidden rounded-full border border-border bg-muted shrink-0">
+                              {u.avatar ? (
+                                <img
+                                  src={u.avatar}
+                                  alt={u.username}
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : (
+                                <div className="h-full w-full grid place-items-center text-[10px] text-muted-foreground">
+                                  ?
+                                </div>
+                              )}
+                            </div>
+
+                            {/*Username*/}
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-medium leading-tight">
+                                {u.username}
+                              </div>
+                              <div className="truncate text-[11px] text-muted-foreground leading-tight">
+                                {u.firstName} {u.lastName}
+                              </div>
+                            </div>
+
+                            {/*Add friend action*/}
+                            <Button
+                              size="sm"
+                              className="rounded-full"
+                              onClick={() => sendFriendRequest(u.userId)}
+                              aria-label={`Send friend request to ${u.username}`}
+                              title="Send friend request"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {isLoadingFriendsSection ? (
+                      <div className="px-2 py-2 text-sm text-muted-foreground">Loading…</div>
+                    ) : filteredCurrentList.length === 0 ? (
+                      <div className="px-2 py-2 text-sm text-muted-foreground">
+                        {currentList.length === 0
+                          ? friendsTab === "friends"
+                            ? "No friends yet."
+                            : friendsTab === "received"
+                              ? "No received friend requests."
+                              : "No sent friend requests."
+                          : "No one with that username could be found."}
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        {filteredCurrentList.map((f) => (
+                          <div
+                            key={f.userId}
+                            className="group flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted/60 transition-colors"
+                          >
+                            {/*Avatar*/}
+                            <div className="h-9 w-9 overflow-hidden rounded-full border border-border bg-muted shrink-0">
+                              {f.avatar ? (
+                                <img
+                                  src={f.avatar}
+                                  alt={f.username}
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                  referrerPolicy="no-referrer"
+                                />
+                              ) : (
+                                <div className="h-full w-full grid place-items-center text-[10px] text-muted-foreground">
+                                  ?
+                                </div>
+                              )}
+                            </div>
+
+                            {/*Username*/}
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-medium leading-tight">
+                                {f.username}
+                              </div>
+                              <div className="truncate text-[11px] text-muted-foreground leading-tight">
+                                {f.firstName} {f.lastName}
+                              </div>
+                            </div>
+
+                            {/*Actions*/}
+                            {friendsTab === "received" ? (
+                              <div className="flex items-center gap-1">
+                                {/*Accept*/}
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="
+                          h-8 w-8 shrink-0
+                          border border-transparent
+                          text-green-600
+                          hover:bg-green-600 hover:text-white
+                          transition-colors
+                        "
+                                  onClick={() => acceptRequest(f.userId)}
+                                  aria-label={`Accept ${f.username}`}
+                                  title="Accept"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+
+                                {/*Decline*/}
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="
+                          h-8 w-8 shrink-0
+                          border border-transparent
+                          text-red-600
+                          hover:bg-red-600 hover:text-white
+                          transition-colors
+                        "
+                                  onClick={() => declineRequest(f.userId)}
+                                  aria-label={`Decline ${f.username}`}
+                                  title="Decline"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : friendsTab === "sent" ? (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="
+                        h-8 w-8 shrink-0
+                        border border-transparent
+                        text-red-600
+                        hover:bg-red-600 hover:text-white
+                        transition-colors
+                      "
+                                onClick={() => undoSentRequest(f.userId)}
+                                aria-label={`Undo request to ${f.username}`}
+                                title="Undo request"
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 shrink-0 opacity-80 group-hover:opacity-100"
+                                onClick={() => {
+                                  // TODO: Implement DMs
+                                  console.log("Message friend", f.userId);
+                                }}
+                                aria-label={`Message ${f.username}`}
+                                title="Message"
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="18"
+                                  height="18"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+                                </svg>
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
