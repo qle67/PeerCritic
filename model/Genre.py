@@ -21,3 +21,9 @@ class Genre(BaseTable, table=True):
     movies: list["Movie"] = Relationship(back_populates="genres", link_model=MovieGenre)
     # Create many-to-many relationship between Genre and Song
     songs: list["Song"] = Relationship(back_populates="genres", link_model=SongGenre)
+
+
+# Create public API response schema for genre cards
+class GenreCardPublic(BaseTable):
+    genre_id: int | None
+    genre_name: str     

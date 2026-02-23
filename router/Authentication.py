@@ -111,7 +111,7 @@ async def does_user_have_access(user_id: Annotated[int, Path(title = "id of user
     return current_user
 
 
-@router.post("/signup")
+@router.post("/signup", operation_id="signup")
 async def signup(user_create: UserCreate, session: SessionDep) -> Token:
     user = get_user(user_create.username, session)
     if user is not None:
