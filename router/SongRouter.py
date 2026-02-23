@@ -26,7 +26,6 @@ async def read_song(song_id: Annotated[int, Path(title = "id of song")], session
                                    artists=[artist.artist_name for artist in song.artists],
                                    genres=[genre.genre_name for genre in song.genres])
 
-
 # # Define routes for getting paginated list of songs
 # @router.get("/songs", response_model=Page[SongCardPublic])
 # async def get_songs(session: SessionDep, page: int = 1, size: int = 20) -> Page[SongCardPublic]:
@@ -34,7 +33,6 @@ async def read_song(song_id: Annotated[int, Path(title = "id of song")], session
 #     set_params(Params(size=size, page=page))
 #     result = paginate(session, select(Song))
 #     return result
-
 
 # Define routes for finding similar songs based on shared genres
 @router.get("/songs/{song_id}/similar", response_model=Page[SongCardPublic])
