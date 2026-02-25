@@ -17,3 +17,9 @@ class Director(BaseTable, table=True):
 
     # Create many-to-many relationship between Director and Movie
     movies: list["Movie"] = Relationship(back_populates="directors", link_model=MovieDirector)
+
+
+# Create public API response schema for director cards
+class DirectorCardPublic(BaseTable):
+    director_id: int | None
+    director_name: str 
