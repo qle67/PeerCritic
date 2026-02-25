@@ -10,10 +10,17 @@ if TYPE_CHECKING:
     
 from model.MovieWriter import MovieWriter
 
-# Create Write database table
+# Create Writer database table
 class Writer(BaseTable, table=True):
     writer_id: int | None = Field(default=None, primary_key=True)   # Create id
     writer_name: str                                                # Required field
 
     # Create many-to-many relationship between Writer and Movie
     movies: list["Movie"] = Relationship(back_populates="writers", link_model=MovieWriter) 
+
+
+# Create public API response schema for writer cards
+class WriterCardPublic(BaseTable):
+    writer_id: int | None
+    writer_name: str 
+    

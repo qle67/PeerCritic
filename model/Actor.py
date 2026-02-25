@@ -17,4 +17,9 @@ class Actor(BaseTable, table=True):
     
     # Create many-to-many relationship between Actor and Movie
     movies: list["Movie"] = Relationship(back_populates="actors", link_model=MovieActor)
-    
+
+
+# Create public API response schema for actor cards
+class ActorCardPublic(BaseTable):
+    actor_id: int | None
+    actor_name: str 
