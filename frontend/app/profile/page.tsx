@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useState } from "react";
 import axios from 'axios';
-import { Star, Check, X, RotateCcw, Plus } from "lucide-react";
+import { Star, Check, X, RotateCcw, Plus, MoreVertical } from "lucide-react";
+import { createPortal } from "react-dom";
+import { useRef } from "react";
 
 interface User {
   userId: number;
@@ -66,6 +68,9 @@ export default function Page() {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userSearchResults, setUserSearchResults] = useState<Friend[]>([]);
   const [loadingUserSearch, setLoadingUserSearch] = useState(false);
+  const [openFriendKebab, setOpenFriendKebab] = useState<number | null>(null);
+  const [kebabPos, setKebabPos] = useState<{ top: number; left: number } | null>(null);
+  const kebabBtnRef = useRef<HTMLButtonElement | null>(null);
 
 
   const countByKind = (k: "movie" | "song") => reviews.filter(r => r.kind === k).length;
@@ -138,6 +143,13 @@ export default function Page() {
   const isLoadingFriendsSection = loadingFriends || loadingRequests;
 
   async function sendFriendRequest(addresseeId: number) {
+    const pendingUser = userSearchResults.find((u) => u.userId === addresseeId);
+    if (pendingUser) {
+      setSentRequests((prev) =>
+        prev.some((x) => x.userId === addresseeId) ? prev : [pendingUser, ...prev]
+      );
+    }
+
     try {
       await axios.post(`http://localhost:8000/my/friends/request/${addresseeId}`, null, {
         headers: {
@@ -150,6 +162,7 @@ export default function Page() {
       fetchFriends();
     } catch (error) {
       console.error(error);
+      setSentRequests((prev) => prev.filter((x) => x.userId !== addresseeId));
     }
   }
 
@@ -194,6 +207,24 @@ export default function Page() {
       });
 
       fetchReceivedRequests();
+    }
+  }
+
+  async function removeFriend(friendId: number) {
+    setFriends((prev) => prev.filter((u) => u.userId !== friendId));
+    setOpenFriendKebab(null);
+
+    try {
+      await axios.delete(`http://localhost:8000/my/friends/${friendId}`, {
+        headers: {
+          Authorization: "Bearer " + localStorage.getItem("accessToken"),
+          Accept: "application/json",
+        },
+      });
+      fetchFriends();
+    } catch (error) {
+      console.error(error);
+      fetchFriends();
     }
   }
 
@@ -297,6 +328,19 @@ export default function Page() {
     fetchReceivedRequests();
     fetchSentRequests();
   }, []);
+
+  // close friend kebab after user clicks anywhere else
+  useEffect(() => {
+    function onDocMouseDown() {
+      if (openFriendKebab !== null) {
+        setOpenFriendKebab(null);
+      }
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+    };
+  }, [openFriendKebab]);
 
   async function fetchUser() {
     try {
@@ -633,15 +677,15 @@ export default function Page() {
                           variant={friendsTab === t.key ? "default" : "ghost"}
                           onClick={() => setFriendsTab(t.key)}
                           className={`rounded-full px-4 border-orange-300 ${friendsTab === t.key
-                              ? "bg-orange-400 text-white hover:bg-orange-500"
-                              : "bg-background text-black hover:bg-orange-100"
+                            ? "bg-orange-400 text-white hover:bg-orange-500"
+                            : "bg-background text-black hover:bg-orange-100"
                             }`}
                         >
                           <span className="mr-2">{t.label}</span>
                           <span
                             className={`text-xs ${friendsTab === t.key
-                                ? "text-primary-foreground/90"
-                                : "text-muted-foreground"
+                              ? "text-primary-foreground/90"
+                              : "text-muted-foreground"
                               }`}
                           >
                             ({t.count})
@@ -716,15 +760,32 @@ export default function Page() {
                             </div>
 
                             {/*Add friend action*/}
-                            <Button
-                              size="sm"
-                              className="rounded-full"
-                              onClick={() => sendFriendRequest(u.userId)}
-                              aria-label={`Send friend request to ${u.username}`}
-                              title="Send friend request"
-                            >
-                              Add
-                            </Button>
+                            {(() => {
+                              const isFriend = friends.some((f) => f.userId === u.userId);
+                              const isPending = sentRequests.some((r) => r.userId === u.userId);
+
+                              const label = isFriend ? "Already Friends" : isPending ? "Request Pending" : "Add";
+
+                              return (
+                                <Button
+                                  size="sm"
+                                  className={`rounded-full ${isFriend || isPending ? "opacity-60 cursor-not-allowed" : ""}`}
+                                  disabled={isFriend || isPending}
+                                  onClick={() => sendFriendRequest(u.userId)}
+                                  aria-label={
+                                    isFriend
+                                      ? `${u.username} is already your friend`
+                                      : isPending
+                                        ? `Friend request pending for ${u.username}`
+                                        : `Send friend request to ${u.username}`
+                                  }
+                                  title={label}
+                                  variant={isFriend || isPending ? "outline" : "default"}
+                                >
+                                  {label}
+                                </Button>
+                              );
+                            })()}
                           </div>
                         ))}
                       </div>
@@ -835,31 +896,94 @@ export default function Page() {
                                 <RotateCcw className="h-4 w-4" />
                               </Button>
                             ) : (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 shrink-0 opacity-80 group-hover:opacity-100"
-                                onClick={() => {
-                                  // TODO: Implement DMs
-                                  console.log("Message friend", f.userId);
-                                }}
-                                aria-label={`Message ${f.username}`}
-                                title="Message"
-                              >
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="18"
-                                  height="18"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
+                              <div className="relative flex items-center gap-1">
+                                {/*Message*/}
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 shrink-0 opacity-80 group-hover:opacity-100"
+                                  onClick={() => {
+                                    // TODO: Implement DMs
+                                    console.log("Message friend", f.userId);
+                                  }}
+                                  aria-label={`Message ${f.username}`}
+                                  title="Message"
                                 >
-                                  <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
-                                </svg>
-                              </Button>
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+                                  </svg>
+                                </Button>
+
+                                {/*Kebab Button*/}
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 shrink-0 opacity-80 group-hover:opacity-100"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+
+                                    const btn = e.currentTarget as HTMLButtonElement;
+                                    const rect = btn.getBoundingClientRect();
+
+                                    const isOpen = openFriendKebab === f.userId;
+                                    if (isOpen) {
+                                      setOpenFriendKebab(null);
+                                      setKebabPos(null);
+                                      return;
+                                    }
+
+                                    setOpenFriendKebab(f.userId);
+                                    setKebabPos({
+                                      top: rect.bottom + window.scrollY + 6,
+                                      left: rect.right + window.scrollX,
+                                    });
+                                  }}
+                                  aria-label={`More options for ${f.username}`}
+                                  title="More"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+
+                                {/*Popover*/}
+                                {openFriendKebab === f.userId && kebabPos &&
+                                  createPortal(
+                                    <div
+                                      className="fixed z-[9999]"
+                                      style={{
+                                        top: kebabPos.top,
+                                        left: kebabPos.left,
+                                        transform: "translateX(-100%)",
+                                      }}
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                    >
+                                      <div className="w-44 rounded-md border border-border bg-background shadow-md p-1">
+                                        <button
+                                          className="w-full rounded-sm px-2 py-2 text-left text-sm text-red-600 hover:bg-muted"
+                                          onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            removeFriend(f.userId);
+                                          }}
+                                        >
+                                          Remove Friend
+                                        </button>
+                                      </div>
+                                    </div>,
+                                    document.body
+                                  )
+                                }
+                              </div>
                             )}
                           </div>
                         ))}

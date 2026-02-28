@@ -146,7 +146,7 @@ async def current_user(current_user: Annotated[User, Depends(get_current_user)])
                              email=profile.email, avatar=profile.avatar)
 
 
-@router.get("/users/{user_id}", response_model=UserPublic)
+@router.get("/users/{user_id:int}", response_model=UserPublic)
 async def read_user(current_user: Annotated[User, Depends(does_user_have_access)] ) -> UserPublic:
     return UserPublic(user_id=current_user.user_id, username=current_user.username)
 
