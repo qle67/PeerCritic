@@ -14,6 +14,30 @@ from model.database import SessionDep
 # Create a router instance
 router = APIRouter()
 
+
+@router.post("/songs/{song_id}/review", operation_id="create_song_review")
+async def create_song_review(
+	song_id_yes: Annotated[int, Path(title = "id of song")],
+	body = str,
+	rating = int,
+	session = SessionDep,)->dict:
+	review = Review(
+		review_id = 8,
+		review  = body,
+		review_rating = rating,
+		user_id = 4,
+		song_id = song_id_yes)
+	session.add(review)
+	session.commit()
+	session.refresh(review)
+	return {
+		"review_id": review.review_id,
+		"song_id": review.song_id,
+		"user_id": review.user_id,
+		"review": review.review,}
+
+
+
 # Define routes for getting a song details
 @router.get("/songs/{song_id}", response_model=SongPublic)
 async def read_song(song_id: Annotated[int, Path(title = "id of song")], session: SessionDep) -> SongPublic:
