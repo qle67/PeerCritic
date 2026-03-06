@@ -36,6 +36,28 @@ async def read_movie(movie_id: Annotated[int, Path(title = "id of movie")], sess
                                    actors=[actor.actor_name for actor in movie.actors],
                                    genres=[genre.genre_name for genre in movie.genres])
 
+@router.post("/movies/{movie_id}/review", operation_id="create_song_review")
+async def create_song_review(
+	song_id_yes: Annotated[int, Path(title = "id of song")],
+	body = str,
+	rating = int,
+	session = SessionDep,)->dict:
+	review = Review(
+		review_id = 8,
+		review  = body,
+		review_rating = rating,
+		user_id = 4,
+		song_id = song_id_yes)
+	session.add(review)
+	session.commit()
+	session.refresh(review)
+	return {
+		"review_id": review.review_id,
+		"song_id": review.song_id,
+		"user_id": review.user_id,
+		"review": review.review,}
+
+
 # # Define routes for getting a paginated list of movies
 # @router.get("/movies", response_model=Page[MovieCardPublic])
 # async def get_movies(session: SessionDep, page: int = 1, size: int = 20) -> Page[MovieCardPublic]:
