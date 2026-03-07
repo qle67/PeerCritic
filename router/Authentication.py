@@ -21,14 +21,16 @@ from model.Review import Review
 
 # Get secret passwords from environment
 load_dotenv()
-SECRET_KEY = os.getenv('SECRET_KEY')
-ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')
+SECRET_KEY = os.getenv('SECRET_KEY')    # The secret string used to sign JWT tokens - must be kept private
+ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')      # How long tokens are valid, read as a string
 
 # Setting for authentication
 class Settings(BaseModel):
-    authjwt_secret_key: str = SECRET_KEY
-    authjwt_access_token_expire: int = int(ACCESS_TOKEN_EXPIRE_MINUTES) * 60
+    authjwt_secret_key: str = SECRET_KEY    # secret key used to sign and verify all JWTs
+    authjwt_access_token_expire: int = int(ACCESS_TOKEN_EXPIRE_MINUTES) * 60    # expire in seconds
 
+# Register get_config as the configuration provider for the AuthJWT library.
+# The function is called automatically at start up
 @AuthJWT.load_config
 def get_config():
     return Settings()
@@ -39,24 +41,25 @@ password_hash = PasswordHash.recommended()
 # Setting for OAuth2 authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+# Create the modular router that all auth routes are registered on
 router = APIRouter()
 
-AuthJWTDep = Annotated[AuthJWT, Depends()]
-TokenDep = Annotated[str, Depends(oauth2_scheme)]
+AuthJWTDep = Annotated[AuthJWT, Depends()]      # inject an AuthJWT instance via FastAPI dependency injection
+TokenDep = Annotated[str, Depends(oauth2_scheme)]       # extracts the token string from Authorization header
 
-
+# The function return true if the plain password matches the stored hash password
 def verify_password(plain_password, hashed_password):
     return password_hash.verify(plain_password, hashed_password)
 
-
+# The function return a hashed password
 def get_password_hash(password):
     return password_hash.hash(password)
 
-
+# Queries the database for a User row where the username matches
 def get_user(username: str, session: SessionDep) -> User | None:
     return session.exec(select(User).where(User.username == username)).first()
        
-
+# Combines get user and verify password into a single authentication check
 def authenticate_user(username: str, password: str, session: SessionDep): 
     user = get_user(username, session)
     if not user:
@@ -65,32 +68,34 @@ def authenticate_user(username: str, password: str, session: SessionDep):
         return False
     return user
 
-
+# The class return token response to the client after a successful login or signup
 class Token(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str
     
-
+# Create both a JWT access token and a refresh token with the username
 def create_access_token(username: str):
     access_token = AuthJWT.create_access_token(self=AuthJWT(), subject=username)
     refresh_token = AuthJWT.create_refresh_token(self=AuthJWT(), subject=username)
     return Token(access_token=access_token, refresh_token=refresh_token, token_type="Bearer")
 
+# The reusable 401 exception raised whenever a token is missing, expired or user no longer exists
 credentials_exception = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
+    status_code=status.HTTP_401_UNAUTHORIZED,   # raised when a token is missing, invalid, or expired
     detail="Please sign in to continue.",
     headers={"WWW-Authenticate": "Bearer"}
 )
 
+# The reusable 403 exception raised when an authenticated user tries to access or modify a resource that belongs to a different user
 access_denied_exception = HTTPException(
-    status_code=status.HTTP_403_FORBIDDEN,
+    status_code=status.HTTP_403_FORBIDDEN,      # raised when a user tries to access another user's resource
     detail="You don't have access to this resource",
     headers={"WWW-Authenticate": "Bearer"}
 )
 
 
-
+# The function identifies the current user who is making the request
 async def get_current_user(token: TokenDep, session: SessionDep, authorize: AuthJWTDep) -> User:
     try: 
         username = authorize.get_raw_jwt(token)["sub"]
@@ -104,28 +109,34 @@ async def get_current_user(token: TokenDep, session: SessionDep, authorize: Auth
         raise credentials_exception
     return user
 
-
+# The function allow the current user access their own data but not someone else's data
 async def does_user_have_access(user_id: Annotated[int, Path(title = "id of user")], current_user: Annotated[User, Depends(get_current_user)]) -> User:
     if current_user.user_id != user_id:
         raise access_denied_exception
     return current_user
 
-
+# Route handlers
+# post /signup - registers a new user account and returns a JWT token
 @router.post("/signup", operation_id="signup")
 async def signup(user_create: UserCreate, session: SessionDep) -> Token:
+    # Check for duplicate username before creating the account
     user = get_user(user_create.username, session)
     if user is not None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken.")
+    
+    # Create the User record with a hashed password - never store plain text passwords
     user = User(username=user_create.username, password=get_password_hash(user_create.password))
     session.add(user)
     session.commit()
     session.refresh(user)
+    
+    # Create the associated Profile record for the new user
     profile = Profile(first_name=user_create.first_name, last_name=user_create.last_name, avatar=user_create.avatar, user_id=user.user_id)
     session.add(profile)
     session.commit()
     return create_access_token(user.username)
         
-
+# post /login - authenticates an existing user and return a JWT token
 @router.post("/login")
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], session: SessionDep) -> Token:
     user = authenticate_user(form_data.username, form_data.password, session)
@@ -137,7 +148,7 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], sess
         )
     return create_access_token(form_data.username)
 
-
+# get /current user - returns the full profile of the current authenticated user
 @router.get("/current_user", response_model=UserProfilePublic)
 async def current_user(current_user: Annotated[User, Depends(get_current_user)]):
     profile = current_user.profile
@@ -145,12 +156,13 @@ async def current_user(current_user: Annotated[User, Depends(get_current_user)])
                              first_name=profile.first_name, last_name=profile.last_name, 
                              email=profile.email, avatar=profile.avatar)
 
-
+# get /users/{user_id} - returns basic public information for a specific user
 @router.get("/users/{user_id}", response_model=UserPublic)
 async def read_user(current_user: Annotated[User, Depends(does_user_have_access)] ) -> UserPublic:
     return UserPublic(user_id=current_user.user_id, username=current_user.username)
 
 
+# put /users/{user_id} - updates the profile of the current authenticated user
 @router.put("/users/{user_id}", response_model=UserProfilePublic)
 async def update_user(profile_update: ProfileUpdate, current_user: Annotated[User, Depends(get_current_user)], session: SessionDep) -> UserProfilePublic:
     profile = current_user.profile

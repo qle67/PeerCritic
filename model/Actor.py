@@ -19,7 +19,7 @@ class Actor(BaseTable, table=True):
     movies: list["Movie"] = Relationship(back_populates="actors", link_model=MovieActor)
 
 
-# Create public API response schema for actor cards
+# Create Data transfer object (DTO) for showing actor information public
 class ActorCardPublic(BaseTable):
     actor_id: int | None
     actor_name: str 

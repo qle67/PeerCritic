@@ -10,13 +10,13 @@ import { Button } from "@/components/ui/button";
 import {Card, CardAction, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import Link from "next/link";
 
-// Define type of Artist data structure
+// Define the TypeScript type for an Artist object returned by API
 type Artist = {
   artistId: number;
   artistName: string;
 }
 
-// Define type of Song data structure
+// Define the TypeScript type for a Song object returned by API
 type Song = {
   songId: number;
   songName: string;
@@ -30,57 +30,64 @@ type Song = {
   reviews: string[];
 }
 
-
+// Export the default page component rendered at the /songs/[id] route
 export default function Page() {
   const params = useParams();         // Get URL parameters
-  // State management
+  // State variable to hold the fetched song details
   const [song, setSong] = useState<Song>();
+  // State variable to hold the list of similar songs
   const [similarSongs, setSimilarSongs] = useState<Song[]>([]);
   
-  // Fetch song and similar songs
+  // Triggers both data fetching functions when the page loads
   useEffect(() => {
-    fetchSong();
-    fetchSimilarSongs();
+    fetchSong();              // Fetch song
+    fetchSimilarSongs();      // Fetch similar songs
   }, []);
   
-  // Fetch song information
+  // Async function to fetch song details from the API
   async function fetchSong() {
     try {
+      // Send a GET request to the song detail endpoint using the id from URL
       const response = await axios.get("http://localhost:8000/songs/" + params.id, {
         headers: {
-          "Accept": 'application/json'
+          "Accept": 'application/json'    // Accept a JSON response
         }
       });
-      console.log(response);
-      setSong(response.data);
+      console.log(response);   
+      setSong(response.data);     // Store the response song data in state
     } catch (error) {
-      console.error(error);
+      console.error(error);     // Log error to the console
     }
   }
   
-  // Fetch similar songs based on shared genres
+  // Async function to fetch similar songs based on shared genres
   async function fetchSimilarSongs() {
     try {
+      // Send a GET request to the similar songs endpoint using the id from URL
       const response = await axios.get("http://localhost:8000/songs/" + params.id + "/similar", {
         headers: {
-          "Accept": 'application/json'
+          "Accept": 'application/json'    // Accept a JSON response
         },
         params: {
-          page: 1,
-          size: 20,
+          page: 1,        // Request the first page of results
+          size: 20,       // Limit results to 20 similar songs
         }
       });
       console.log(response);
       if (response && response.data) {
+        // Extract the item array from the paginated response and store it in state
         setSimilarSongs(response.data.items);
       }
     } catch (error) {
-      console.error(error);
+      console.error(error);     // Log errors to the console
     }
   }
   
+  // Render the Song detail page UI
   return (
+    // Outer container
     <div className="mx-auto">
+      {/* Render the navigation bar at the top of the page*/}
       <Navbar />
       <div>
         {/* Only show content when song data is loaded */}
@@ -154,7 +161,7 @@ export default function Page() {
 
               {/* Reviews section */}
               <div className="text-xl font-bold justify-self-center mt-5">Reviews</div>
-
+              
               <div>
 
               </div>

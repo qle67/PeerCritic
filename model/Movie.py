@@ -42,7 +42,7 @@ class Movie(BaseTable, table=True):
     # Create many-to-many relationship between Movie and Review
     reviews: list["Review"] = Relationship(back_populates="movie")
     
-# Create public API response schema for detailed movie view
+# Create Data Transfer Object (DTO) for detailed movie view
 class MoviePublic(BaseTable): 
     movie_id: int | None
     movie_name: str
@@ -57,7 +57,7 @@ class MoviePublic(BaseTable):
     directors: list[str]
     genres: list[str]
     
-# Create public API response schema for movie cards
+# Create Data Transfer Object (DTO) for movie card view
 class MovieCardPublic(BaseTable): 
     movie_id: int | None
     movie_name: str
