@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
 
 from model.database import create_db_and_tables
-from router import Authentication, MovieRouter, SongRouter, Reviews, WriterRouter, ActorRouter, DirectorRouter, \
-    GenreRouter, FriendsRouter, ArtistRouter
+from router import Authentication, MovieRouter, SongRouter, WriterRouter, ActorRouter, DirectorRouter, \
+    GenreRouter, FriendsRouter, ReviewsRouter, UsersRouter, ArtistRouter
 from router.Admin import admin
 
 # Application lifespan manager
@@ -42,7 +42,7 @@ app.include_router(MovieRouter.router)
 app.include_router(SongRouter.router)
 
 # Register Review routes
-app.include_router(Reviews.router)
+app.include_router(ReviewsRouter.router)
 
 # Register Friends routes
 app.include_router(FriendsRouter.router)
@@ -61,3 +61,18 @@ app.include_router(GenreRouter.router)
 
 # Register Artist routes
 app.include_router(ArtistRouter.router)
+
+#Register Users routes
+app.include_router(UsersRouter.router)
+
+# Register Writer routes
+app.include_router(WriterRouter.router)
+
+# Register Actor routes
+app.include_router(ActorRouter.router)
+
+# Register Director routes
+app.include_router(DirectorRouter.router)
+
+# Register Genre routes
+app.include_router(GenreRouter.router)
