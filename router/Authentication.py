@@ -44,6 +44,19 @@ router = APIRouter()
 AuthJWTDep = Annotated[AuthJWT, Depends()]
 TokenDep = Annotated[str, Depends(oauth2_scheme)]
 
+def decode_access_token(token: str) -> dict:
+    """
+    Returns the raw JWT dict as an access token.
+    """
+    try:
+        authorize = AuthJWT()
+        return authorize.get_raw_jwt(token)
+    except AuthJWTException:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 def verify_password(plain_password, hashed_password):
     return password_hash.verify(plain_password, hashed_password)

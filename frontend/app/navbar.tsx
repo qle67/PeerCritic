@@ -1,19 +1,21 @@
 "use client";
 
-import {Menu} from "lucide-react";
+import { Menu } from "lucide-react";
 
-import {Accordion,} from "@/components/ui/accordion";
-import {Button} from "@/components/ui/button";
+import { Accordion, } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
-import {Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,} from "@/components/ui/sheet";
-import {Input} from "@/components/ui/input";
-import {useEffect, useState} from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { useEffect, useState } from "react";
 import axios from 'axios';
+import Link from "next/link";
+import { MessageCircle } from "lucide-react";
 
 const menu = [
   {
@@ -55,7 +57,7 @@ export default function Navbar() {
   // Get current logged in information
   async function fetchUser() {
     const token = localStorage.getItem("accessToken");
-    if(!token) {
+    if (!token) {
       setUser(null);
       return;
     }
@@ -78,7 +80,7 @@ export default function Navbar() {
     }
 
   }
-  
+
   // check if user is logged in (local storage will store access token)
   function isUserLoggedIn() {
     const accessToken = localStorage.getItem("accessToken");
@@ -87,7 +89,7 @@ export default function Navbar() {
     }
     return false;
   }
-  
+
   function logout() {
     localStorage.removeItem("accessToken");
     setUser(null);
@@ -122,19 +124,38 @@ export default function Navbar() {
                 </NavigationMenuList>
               </NavigationMenu>
             </div>
-            <Input className="bg-orange-800 text-white !placeholder-white w-100 rounded-full" type="search" placeholder="Search"/>
+            <Input className="bg-orange-800 text-white !placeholder-white w-100 rounded-full" type="search" placeholder="Search" />
           </div>
 
           {user != null
             ? (
               <div>
                 <div className="flex items-center gap-3 text-lg font-semibold tracking-tighter">
-                  <a href="/profile" className="flex items-center gap-2 mr-5">
-                  {user.avatar && (
-                    <img src={user.avatar} alt="avatar" className="w-10 h-10 rounded-full object-cover border border-orange-200"/>
-                  )}
+                  {/*Messages button*/}
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="icon"
+                    className="h-11 w-15 bg-orange-400 text-white border-orange-300 hover:bg-orange-300"
+                  >
+                    <Link href="/messages">
+                      <MessageCircle className="size-5" />
+                    </Link>
+                  </Button>
+
+                  {/*Profile Link*/}
+                  <Link href="/profile" className="flex items-center gap-2 mr-5 text-black">
+                    {user.avatar && (
+                      <img
+                        src={user.avatar}
+                        alt="avatar"
+                        className="w-10 h-10 rounded-full object-cover border border-orange-200"
+                      />
+                    )}
                     Hello, {user.firstName} {user.lastName}
-                  </a>
+                  </Link>
+
+                  {/*Logout*/}
                   <Button asChild size="sm">
                     <a href="/" onClick={logout}>LOGOUT</a>
                   </Button>
@@ -163,7 +184,7 @@ export default function Navbar() {
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon">
-                  <Menu className="size-4"/>
+                  <Menu className="size-4" />
                 </Button>
               </SheetTrigger>
               <SheetContent className="overflow-y-auto">
