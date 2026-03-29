@@ -4,8 +4,21 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from model.database import create_db_and_tables
-from router import (Authentication, MovieRouter, SongRouter, WriterRouter, ActorRouter, DirectorRouter,
-                    GenreRouter, FriendsRouter, ReviewsRouter, UsersRouter, ArtistRouter)
+from router import (
+    Authentication,
+    MovieRouter,
+    ReviewsRouter,
+    SongRouter,
+    ArtistRouter,
+    WriterRouter,
+    ActorRouter,
+    DirectorRouter,
+    GenreRouter,
+    FriendsRouter,
+    UsersRouter,
+    MessagesRouter,
+    #WsMessagesRouter,
+)
 from router.Admin import admin
 
 
@@ -47,6 +60,12 @@ app.include_router(ReviewsRouter.router)
 
 # Register Friends routes
 app.include_router(FriendsRouter.router)
+
+#Register Messages routes
+app.include_router(MessagesRouter.router)
+
+#Register Messages websocket router
+#app.include_router(WsMessagesRouter.router)
 
 # Register Writer routes
 app.include_router(WriterRouter.router)
