@@ -8,29 +8,38 @@ import {useState} from "react";
 import axios from 'axios';
 import {useRouter} from 'next/navigation';
 
+// Export the default page component
 export default function Page() {
-  const [username, setUsername] = useState("");
+  // Create useState 
+  const [username, setUsername] = useState("");  // State variable for storing the username input value, start at an empty string
   const [password, setPassword] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false); // State variable to track if the form is submitted.
 
+  // Destructure the push function from useRouter to allow navigating to other pages
   const { push } = useRouter();
   
+  // The login function runs when the login button is clicked
   async function login(e: React.MouseEvent<HTMLButtonElement>) {
-    setIsSubmitted(true);
-    e.preventDefault();
+    setIsSubmitted(true); 
+    e.preventDefault();   // prevent the default browser behavior on button click
     try {
+      //Send a POST request to the local backend login endpoint with username and password
       const response = await axios.post("http://localhost:8000/login", new URLSearchParams({
         username,
         password,
       }));
-      console.log(response.data);
+      // Log the server response data to the browser console for debugging
+      console.log(response.data);  
+      // Store the access token in localStorage
       localStorage.setItem("accessToken", response.data.access_token);
+      // Navigate the user to the home page when successful login
       push('/');
     } catch (error) {
       console.error(error);
     }
   }
   
+  // Return or render block to define the login page UI
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
@@ -44,6 +53,7 @@ export default function Page() {
             </CardHeader>
             <CardContent>
               <FieldGroup>
+                {/* Username field*/}
                 <Field>
                   <FieldLabel htmlFor="username">Username</FieldLabel>
                   <Input id="username"
@@ -55,6 +65,8 @@ export default function Page() {
                   />
                   {isSubmitted && username.length <= 0 && (<FieldError>Username is required!</FieldError>)}
                 </Field>
+
+                {/* Password field*/}
                 <Field>
                   <div className="flex items-center">
                     <FieldLabel htmlFor="password">Password</FieldLabel>
@@ -71,6 +83,8 @@ export default function Page() {
                   />
                   {isSubmitted && password.length <= 0 && (<FieldError>Password is required!</FieldError>)}
                 </Field>
+
+                {/* Action field contains the submit and cancel buttons and signup link*/}
                 <Field>
                   <Button className="bg-orange-400 hover:bg-orange-800" type="button" onClick={login}>Login</Button>
                   <Button className="bg-transparent border-orange-400" variant="outline" type="button">

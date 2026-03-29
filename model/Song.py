@@ -33,7 +33,7 @@ class Song(BaseTable, table=True):
     # Create one-to-many relationship between Song and Review
     reviews: list["Review"] = Relationship(back_populates="song")
 
-# Create public API response schema for detailed song view    
+# Create Data Transfer Object (DTO) for detailed song view  
 class SongPublic(BaseTable):
     song_id: int | None
     song_name: str                                                  
@@ -47,7 +47,7 @@ class SongPublic(BaseTable):
     genres: list[str]
     reviews: list[str]
 
-# Create public API response schema for song cards
+# Create Data Transfer Object (DTO) for song cards
 class SongCardPublic(BaseTable):
     song_id: int | None
     song_name: str

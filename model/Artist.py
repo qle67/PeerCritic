@@ -18,7 +18,7 @@ class Artist(BaseTable, table=True):
     # Create many-to-many relationship between Artist and Song
     songs: list["Song"] = Relationship(back_populates="artists", link_model=SongArtist)
 
-# Create public API response schema for artist view
+# Create Data Transfer Object (DTO) for showing Artist information public
 class ArtistPublic(BaseTable):
     artist_id: int | None
     artist_name: str

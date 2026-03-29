@@ -23,7 +23,7 @@ class Genre(BaseTable, table=True):
     songs: list["Song"] = Relationship(back_populates="genres", link_model=SongGenre)
 
 
-# Create public API response schema for genre cards
+# Create Data Transfer Object (DTO) for showing Genre information public
 class GenreCardPublic(BaseTable):
     genre_id: int | None
     genre_name: str     

@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
-from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from model.database import create_db_and_tables
 from router import (
@@ -9,6 +9,7 @@ from router import (
     MovieRouter,
     ReviewsRouter,
     SongRouter,
+    ArtistRouter,
     WriterRouter,
     ActorRouter,
     DirectorRouter,
@@ -21,13 +22,16 @@ from router import (
 from router.Admin import admin
 
 
+# Application lifespan manager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    create_db_and_tables()
+    create_db_and_tables()      # Creates all SQLModel tables if they don't exist
     yield
 
+# CORS configuration
 origins = ["http://localhost:5173", "http://localhost:3000", "http://169.254.244.127:3000"]
 
+# Create FastAPI application instance
 app = FastAPI(lifespan=lifespan)
 
 
@@ -74,6 +78,9 @@ app.include_router(DirectorRouter.router)
 
 # Register Genre routes
 app.include_router(GenreRouter.router)
+
+# Register Artist routes
+app.include_router(ArtistRouter.router)
 
 #Register Users routes
 app.include_router(UsersRouter.router)

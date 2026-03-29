@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import {Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
 import Link from "next/link";
 
-/* Define Episode data structure */
+/* Define TypeScript type for an Episode object returned by API */
 type Episode = {
   episodeId: number;
   episodeNumber: number;
@@ -19,7 +19,7 @@ type Episode = {
   movieId: number;
 }
 
-/* Define Movie or show data structure */
+/* Define TypeScript type for Read Movie object returned by API */
 type Movie = {
   movieId: number;
   movieName: string;
@@ -36,56 +36,64 @@ type Movie = {
   episodes: Episode[];
 }
 
+// Export the default page component rendered at the /movies/[id] route
 export default function Page() {
   const params = useParams();         // Get URL parameters
-  // State management
-  const [movie, setMovie] = useState<Movie>();   
+  // State variable to hold the fetched movie details
+  const [movie, setMovie] = useState<Movie>(); 
+  // State variable to hold the fetched similar movies
   const [similarMovies, setSimilarMovies] = useState<Movie[]>([]);
   
-  // Fetch movie and similar movies
+  // Triggers both data fetching function on page load
   useEffect(() => {
-    fetchMovie();
-    fetchSimilarMovies();
+    fetchMovie();               // Fetch movie
+    fetchSimilarMovies();       // Fetch similar movies
   }, []);
   
-  // Fetch detailed movie from API
+  // Async function to fetch detailed movie from API
   async function fetchMovie() {
     try {
+      // Send a Get request to the movie detail endpoint using the id from the URL
       const response = await axios.get("http://localhost:8000/movies/" + params.id, {
         headers: {
           "Accept": 'application/json'
         }
       });
       // console.log(response);
-      setMovie(response.data);
+      setMovie(response.data);      // Store the returned movie data in state
     } catch (error) {
-      console.error(error);
+      console.error(error);         // Log network or server error to the console
     }
   }
   
-  // Fetch similar movies based on share genres
+  // Async function to fetch similar movies based on share genres
   async function fetchSimilarMovies() {
     try {
+      // Send a Get resquest to the similar movies endpoint using the id from the URL
       const response = await axios.get("http://localhost:8000/movies/" + params.id + "/similar", {
         headers: {
           "Accept": 'application/json'
         },
         params: {
-          page: 1,
-          size: 20,
+          page: 1,      // Request the first page of result
+          size: 20,     // Limit results to 20 similar movies
         }
       });
       console.log(response);
       if (response && response.data) {
+        // Extract the items array from the paginated response and store it in state
         setSimilarMovies(response.data.items);
       }
     } catch (error) {
-      console.error(error);
+      console.error(error);   // Log error to the console
     }
   }
   
+  // Render the movie detail page UI
   return (
+    // Outer container
     <div className="mx-auto">
+      {/* Render the navigation bar at the top of the page*/}
       <Navbar />
       <div>
         {/* Only show content when movie data is loaded */}

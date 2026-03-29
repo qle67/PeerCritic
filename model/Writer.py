@@ -19,7 +19,7 @@ class Writer(BaseTable, table=True):
     movies: list["Movie"] = Relationship(back_populates="writers", link_model=MovieWriter) 
 
 
-# Create public API response schema for writer cards
+# Create Data Transfer Object (DTO) for showing Writer information public
 class WriterCardPublic(BaseTable):
     writer_id: int | None
     writer_name: str 

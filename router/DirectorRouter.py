@@ -9,7 +9,7 @@ from model.database import SessionDep
 # Create a router instance
 router = APIRouter()
 
-#Define routes for getting a list of writers
+# Define routes for getting a list of writers
 @router.get("/directors", response_model=Page[DirectorCardPublic])
 async def get_directors(session: SessionDep, page: int = 1, size: int = 20) -> Page[DirectorCardPublic]:
     set_page(Page[DirectorCardPublic])
