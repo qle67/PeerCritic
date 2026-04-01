@@ -3,6 +3,7 @@ from typing import Annotated
 
 from dotenv import load_dotenv
 from fastapi import Depends
+from sqlalchemy import text
 from sqlmodel import SQLModel, create_engine, Session
 
 # Load environment variable or secret from .env file

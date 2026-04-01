@@ -280,7 +280,7 @@ def send_message(
     session.commit()
     session.refresh(msg)
 
-    conv.last_message_id = msg.message_id
+    # conv.last_message_id = msg.message_id
     conv.last_message_at = msg.sent_datetime
     conv.last_message_text = msg.message_text[:200]
     conv.last_message_from_user_id = msg.from_user_id
@@ -341,7 +341,7 @@ def mark_conversation_read(
         raise HTTPException(404, "Conversation not found")
 
     member.unread_count = 0
-    member.last_read_message_id = conv.last_message_id
+    # member.last_read_message_id = conv.last_message_id
     session.add(member)
     session.commit()
 

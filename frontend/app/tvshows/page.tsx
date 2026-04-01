@@ -12,6 +12,14 @@ import {Badge} from "@/components/ui/badge";
 import {cn} from "@/lib/utils";
 import {Card, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import Link from "next/link";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from "@/components/ui/pagination";
 
 
 // Define TypeScript type for Search Shows object returned by API
@@ -96,6 +104,12 @@ type GenrePage = {
 
 // Export the default page component rendered at the /shows route
 export default function Page() {
+  // State to hold the current page
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  
+  // State to hold the total page
+  const [totalPages, setTotalPages] = useState<number>(1);
+  
   // State to hold the search text
   const [searchText, setSearchText] = useState<string>("");
 
@@ -131,6 +145,8 @@ export default function Page() {
 
   // Reset search options
   function reset() {
+    setCurrentPage(1);
+    setTotalPages(1);
     setSearchText("");
     setSelectedYear("");
     setSelectedDirector("");
@@ -177,17 +193,20 @@ export default function Page() {
     }
   }, [searchText, selectedYear, selectedActor, selectedWriter, selectedDirector, selectedGenre]);
 
-  // Async function to fetch Search Movies from API
-  async function searchShows() {
+  // Async function to fetch Search Shows from API
+  async function searchShows(page: number = 1) {
+    if (page >= 1) {
+      setCurrentPage(page);
+    }
     try {
-      // Send a GET resquest to the search movies endpoint using the id from the URL
+      // Send a GET resquest to the search shows endpoint using the id from the URL
       const response = await axios.get("http://localhost:8000/shows", {
         headers: {
           "Accept": 'application/json'
         },
         params: {
-          page: 1,      // Request the first page of result
-          size: 20,     // Limit results to 20 search movies
+          page: page,      // Request the first page of result
+          size: 8,     // Limit results to 8 search shows
           search_text: searchText !== "" ? searchText : undefined,
           search_year: selectedYear !== "" ? selectedYear : undefined,
           search_writer: selectedWriter !== "" ? selectedWriter : undefined,
@@ -196,8 +215,9 @@ export default function Page() {
           search_genre: selectedGenre !== "" ? selectedGenre : undefined,
         }
       });
-      // Get the item array from the Search Movies responses and store it in state
+      // Get the item array from the Search Shows responses and store it in state
       setShows(response.data.items as Show[]);
+      setTotalPages(response.data.pages);
     } catch (error) {
       console.error(error);
     }
@@ -267,7 +287,7 @@ export default function Page() {
   async function getGenres() {
     try {
       // Send a Get request to the Get Genres endpoint using the id from the URL
-      const response = await axios.get("http://localhost:8000/genres", {
+      const response = await axios.get("http://localhost:8000/genres/movies", {
         headers: {
           "Accept": 'application/json'
         },
@@ -285,7 +305,7 @@ export default function Page() {
 
   // Triggers data fetching function on page load
   useEffect(() => {
-    // searchMovies();       // Fetch Search Movies
+    searchShows();       // Fetch Search Shows
     getActors();          // Fetch Get Actors
     getDirectors();       // Fetch Get Directors
     getWriters();         // Fetch Get Writers
@@ -412,6 +432,29 @@ export default function Page() {
           </Card>
         ))}
       </div>
+
+      <Pagination className="mt-15 mb-10">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious href="#" aria-disabled={currentPage <= 1}
+                                className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                                onClick={() => searchShows(currentPage - 1)}/>
+          </PaginationItem>
+          {Array.from({length: totalPages}, (_, index) => index + 1).map(page => (
+            <PaginationItem key={page}>
+              <PaginationLink href="#"
+                              isActive={page === currentPage} onClick={() => searchShows(page)}>
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+          ))}
+          <PaginationItem>
+            <PaginationNext href="#" aria-disabled={currentPage >= totalPages}
+                            className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                            onClick={() => searchShows(currentPage + 1)}/>
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
 
     </div>
   )

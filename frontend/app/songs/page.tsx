@@ -12,6 +12,14 @@ import {Badge} from "@/components/ui/badge";
 import {cn} from "@/lib/utils";
 import {Card, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
 import Link from "next/link";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from "@/components/ui/pagination";
 
 
 // Define TypeScript type for Search Songs object returned by API
@@ -66,6 +74,12 @@ type GenrePage = {
 
 // Export the default page component rendered at the /songs route
 export default function Page() {
+  // State to hold the current page
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  
+  // State to hold the total pages
+  const [totalPages, setTotalPages] = useState<number>(1);
+  
   // State to hold the search text
   const [searchText, setSearchText] = useState<string>("");
 
@@ -89,6 +103,8 @@ export default function Page() {
 
   // Reset search options
   function reset() {
+    setCurrentPage(1);
+    setTotalPages(1);
     setSearchText("");
     setSelectedYear("");
     setSelectedArtist("");
@@ -124,7 +140,10 @@ export default function Page() {
   }, [searchText, selectedYear, selectedArtist, selectedGenre]);
 
   // Async function to fetch Search Songs from API
-  async function searchSongs() {
+  async function searchSongs(page: number = 1) {
+    if (page >= 1) {
+      setCurrentPage(page);
+    }
     try {
       // Send a GET resquest to the search songs endpoint using the id from the URL
       const response = await axios.get("http://localhost:8000/songs", {
@@ -132,8 +151,8 @@ export default function Page() {
           "Accept": 'application/json'
         },
         params: {
-          page: 1,      // Request the first page of result
-          size: 20,     // Limit results to 20 search songs
+          page: page,      // Request the first page of result
+          size: 8,     // Limit results to 8 search songs
           search_text: searchText !== "" ? searchText : undefined,
           search_year: selectedYear !== "" ? selectedYear : undefined,
           search_artist: selectedArtist !== "" ? selectedArtist : undefined,
@@ -142,6 +161,7 @@ export default function Page() {
       });
       // Get the item array from the Search Songs responses and store it in state
       setSongs(response.data.items as Song[]);
+      setTotalPages(response.data.pages);
     } catch (error) {
       console.error(error);
     }
@@ -171,7 +191,7 @@ export default function Page() {
   async function getGenres() {
     try {
       // Send a Get request to the Get Genres endpoint using the id from the URL
-      const response = await axios.get("http://localhost:8000/genres", {
+      const response = await axios.get("http://localhost:8000/genres/songs", {
         headers: {
           "Accept": 'application/json'
         },
@@ -205,7 +225,7 @@ export default function Page() {
       <div className="border-3 border-orange-400 mx-40 my-10 p-3 rounded-xl">
         <div className="justify-self-center flex gap-8">
           <div className="w-40 h-40">
-            <img src="/camera.png" alt="camera"/>
+            <img src="/radio.png" alt="camera"/>
           </div>
           <div className="flex flex-col gap-5">
 
@@ -228,7 +248,7 @@ export default function Page() {
                 <NativeSelect id="select-artist" className="bg-orange-400"
                               value={selectedArtist}
                               onChange={e => onArtistSelected(e.target.value)}>
-                  <NativeSelectOption value="">Select actor</NativeSelectOption>
+                  <NativeSelectOption value="">Select artist</NativeSelectOption>
                   {artists.map(artist => (
                     <NativeSelectOption key={artist.artistId}
                                         value={artist.artistName}>{artist.artistName}</NativeSelectOption>
@@ -294,6 +314,29 @@ export default function Page() {
           </Card>
         ))}
       </div>
+
+      <Pagination className="mt-15 mb-10">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious href="#" aria-disabled={currentPage <= 1}
+                                className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""}
+                                onClick={() => searchSongs(currentPage - 1)}/>
+          </PaginationItem>
+          {Array.from({length: totalPages}, (_, index) => index + 1).map(page => (
+            <PaginationItem key={page}>
+              <PaginationLink href="#"
+                              isActive={page === currentPage} onClick={() => searchSongs(page)}>
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+          ))}
+          <PaginationItem>
+            <PaginationNext href="#" aria-disabled={currentPage >= totalPages}
+                            className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                            onClick={() => searchSongs(currentPage + 1)}/>
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
 
     </div>
   )

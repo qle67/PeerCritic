@@ -18,5 +18,5 @@ async def get_artists(
 ) -> Page[ArtistPublic]:
     set_page(Page[ArtistPublic])
     set_params(Params(size=size, page=page))
-    result = paginate(session, select(Artist))
+    result = paginate(session, select(Artist).order_by(Artist.artist_id))
     return result

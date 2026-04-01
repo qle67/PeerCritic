@@ -27,6 +27,7 @@ type Movie = {
   year: number;
   length: string;
   cover: string;
+  video: string;
   movieRating: number;
   movieRatingCount: number;
   writers: string[];
@@ -104,7 +105,7 @@ export default function Page() {
             <div className="grow-1">
               <div className="flex flex-col items-center">
                 {/* Movie Poster */}
-                <img src={movie.cover} alt={movie.movieName} width="200" height="400"/>
+                <img src={movie.cover} alt={movie.movieName} width="300" height="400"/>
                 {/* genre badges */}
                 <div className="mt-2">
                   {movie.genres.map((genre, index) => (
@@ -200,15 +201,21 @@ export default function Page() {
                 <Button className="bg-orange-400">REVIEW</Button>
                 <Button className="bg-orange-400">SHARE</Button>
               </div>
-              <div className="mt-8 justify-self-center">
-                <Button
-                  className="text-xl font-bold bg-orange-200 text-grey-500 p-7 rounded-xl border-3 border-orange-300">Watch
-                  Trailer</Button>
+              <div className="mt-8 justify-self-center flex flex-col justify-center">
+                <Button variant="ghost"
+                  className="text-xl font-bold bg-orange-200 text-grey-500 p-7 rounded-t-xl rounded-b-none border-3 border-orange-300">
+                  Official Trailer
+                </Button>
+                <iframe width="560" height="315" src={movie.video}
+                        title={movie.movieName} frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen />
+
               </div>
 
               {/* Reviews section */}
               <div className="text-xl font-bold justify-self-center mt-5">Reviews</div>
-              
+
               <div>
 
               </div>

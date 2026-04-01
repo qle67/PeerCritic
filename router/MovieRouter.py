@@ -36,35 +36,23 @@ async def read_movie(
         movie_id=movie.movie_id, 
         movie_name=movie.movie_name, 
         description=movie.description,
-        year=movie.year, length=movie.length, 
+        year=movie.year, 
+        length=movie.length, 
         cover=movie.cover,
+        back_drop=movie.back_drop,
+        video=movie.video,
         movie_rating=movie.movie_rating,
         movie_rating_count=movie.movie_rating_count, 
         episodes=movie.episodes,                                                # Include Episode objects
         directors=[director.director_name for director in movie.directors],     # Extract director names only
         writers=[writer.writer_name for writer in movie.writers],               # Extract writer names only
         actors=[actor.actor_name for actor in movie.actors],                    # Extract actor names only
-        genres=[genre.genre_name for genre in movie.genres])                    # Extract genre names only
-
-# # Define routes for getting a paginated list of movies
-# @router.get("/movies", response_model=Page[MovieCardPublic])
-# async def get_movies(session: SessionDep, page: int = 1, size: int = 20) -> Page[MovieCardPublic]:
-#     set_page(Page[MovieCardPublic])
-#     set_params(Params(size=size, page=page))
-#     result = paginate(session, select(Movie).outerjoin(Episode).where(Episode.episode_id.is_(None)).order_by(Movie.movie_id))
-#     return result
+        genres=[genre.genre_name for genre in movie.genres],                    # Extract genre names only
+        reviews=[review.review for review in movie.reviews])                    # Extract review only
 
 # Extend the movie card public to include episode data, used for TV show card responses in Lists
 class TVShowCardPublic(MovieCardPublic):
     episodes: list[Episode]
-
-# Define routes for getting a paginated list of TV shows
-# @router.get("/shows", response_model=Page[TVShowCardPublic])
-# async def get_shows(session: SessionDep, page: int = 1, size: int = 20) -> Page[TVShowCardPublic]:
-#     set_page(Page[TVShowCardPublic])
-#     set_params(Params(size=size, page=page))
-#     result = paginate(session, select(Movie).options(joinedload(Movie.episodes)).where(Movie.episodes.any()).order_by(Movie.movie_id))
-#     return result
 
 # Define a GET route for finding similar movies or shows based on shared genres
 @router.get("/movies/{movie_id}/similar", response_model=Page[MovieCardPublic])
@@ -96,7 +84,7 @@ async def read_similar_movie(
     return result
 
 
-# Define routes for searching a list of movies by text and categories
+# Define routes for searching a list of movies by text, filtering and categories
 @router.get("/movies", response_model=Page[MovieCardPublic])
 async def search_movies(
         session: SessionDep,                    # Injected database session
@@ -148,7 +136,7 @@ async def search_movies(
     return result
 
 
-# Define routes for searching a list of TV shows by text and categories
+# Define routes for searching a list of TV shows by text, filtering and categories
 @router.get("/shows", response_model=Page[TVShowCardPublic])
 async def search_shows(
         session: SessionDep,                            # Injected database session
@@ -171,7 +159,7 @@ async def search_shows(
 
     # If a search text is provided, filter movies that have names containing the text (case_insensitive)
     if search_text is not None:
-        statement = statement.where(func.lower(Movie.movie_name).contains(search_text.lower()))
+        statement = statement.where(func.lower(Movie.movie_name).contains(search_text.casefold()))
 
     # If a search year is provided, filter movies released in that specific year
     if search_year is not None:
@@ -196,5 +184,3 @@ async def search_shows(
     # Execute the paginated query     
     result = paginate(session, statement)
     return result
-
-

@@ -14,5 +14,5 @@ router = APIRouter()
 async def get_writers(session: SessionDep, page: int = 1, size: int = 20) -> Page[WriterCardPublic]:
     set_page(Page[WriterCardPublic])
     set_params(Params(size=size, page=page))
-    result = paginate(session, select(Writer))
+    result = paginate(session, select(Writer).order_by(Writer.writer_id))
     return result

@@ -23,6 +23,7 @@ type Song = {
   year: number;
   length: string;
   cover: string;
+  video: string;
   songRating: number;
   songRatingCount: number;
   artists: string[] | Artist[];
@@ -154,14 +155,22 @@ export default function Page() {
                 <Button className="bg-orange-400">SHARE</Button>
               </div>
               {/* listen button */}
-              <div className="mt-8 justify-self-center">
-                <Button
-                  className="text-xl font-bold bg-orange-200 text-grey-500 p-7 rounded-xl border-3 border-orange-300">Listen Preview</Button>
+              
+              <div className="mt-8 justify-self-center flex flex-col justify-center">
+                <Button variant="ghost"
+                        className="text-xl font-bold bg-orange-200 text-grey-500 p-7 rounded-t-xl rounded-b-none border-3 border-orange-300">
+                  Music Video
+                </Button>
+                <iframe width="560" height="315" src={song.video}
+                        title={song.songName} frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen/>
+
               </div>
 
               {/* Reviews section */}
               <div className="text-xl font-bold justify-self-center mt-5">Reviews</div>
-              
+
               <div>
 
               </div>
@@ -171,14 +180,15 @@ export default function Page() {
             <div className="grow-1">
               <div className="text-lg font-bold justify-self-center mt-5">Similar Songs</div>
               {similarSongs.map(similarSong => (
-                <Card key={similarSong.songId} className="w-90 mt-1 justify-self-center bg-orange-200 border-orange-400 border-1 mt-2">
+                <Card key={similarSong.songId}
+                      className="w-90 mt-1 justify-self-center bg-orange-200 border-orange-400 border-1 mt-2">
                   <CardHeader>
-                    
+
                     {/* Song title */}
                     <CardTitle>
                       <Link href={"/songs/" + similarSong.songId}>{similarSong.songName}</Link>
                     </CardTitle>
-                    
+
                     {/* Song information */}
                     <CardDescription className="flex">
                       <div className="mr-9">

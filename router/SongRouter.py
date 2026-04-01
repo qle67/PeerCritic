@@ -30,20 +30,14 @@ async def read_song(
         year=song.year, 
         length=song.length, 
         cover=song.cover,
+        video=song.video,
         song_rating=song.song_rating,
         song_rating_count=song.song_rating_count,
-        reviews=[review.review_name for review in song.reviews],    # Extract reviews only
+        reviews=[review.review for review in song.reviews],          # Extract reviews only
         artists=[artist.artist_name for artist in song.artists],    # Extract artist names only
         genres=[genre.genre_name for genre in song.genres]          # Extract genre names only
     )
 
-# # Define routes for getting paginated list of songs
-# @router.get("/songs", response_model=Page[SongCardPublic])
-# async def get_songs(session: SessionDep, page: int = 1, size: int = 20) -> Page[SongCardPublic]:
-#     set_page(Page[SongCardPublic])
-#     set_params(Params(size=size, page=page))
-#     result = paginate(session, select(Song))
-#     return result
 
 # Define routes for finding similar songs based on shared genres
 @router.get("/songs/{song_id}/similar", response_model=Page[SongCardPublic])

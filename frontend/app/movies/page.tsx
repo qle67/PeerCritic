@@ -12,6 +12,13 @@ import {InputGroup, InputGroupAddon, InputGroupInput} from "@/components/ui/inpu
 import {Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious} from "@/components/ui/carousel";
 import {Badge} from "@/components/ui/badge";
 import {cn} from "@/lib/utils";
+import {
+  Pagination,
+  PaginationContent, PaginationEllipsis,
+  PaginationItem,
+  PaginationLink, PaginationNext,
+  PaginationPrevious
+} from "@/components/ui/pagination";
 
 // Define TypeScript type for Search Movies object returned by API
 type Movie = {
@@ -95,6 +102,12 @@ type GenrePage = {
 
 // Export the default page component rendered at the /movies route
 export default function Page() {
+  // State to hold the current page
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  
+  // State to hold the total pages
+  const [totalPages, setTotalPages] = useState<number>(1);
+  
   // State to hold the search text
   const [searchText, setSearchText] = useState<string>("");
   
@@ -130,6 +143,8 @@ export default function Page() {
   
   // Reset search options
   function reset() {
+    setCurrentPage(1);
+    setTotalPages(1);
     setSearchText("");
     setSelectedYear("");
     setSelectedDirector("");
@@ -177,7 +192,10 @@ export default function Page() {
   }, [searchText, selectedYear, selectedActor, selectedWriter, selectedDirector, selectedGenre]);
   
   // Async function to fetch Search Movies from API
-  async function searchMovies() {
+  async function searchMovies(page: number = 1) {
+    if (page >= 1) {
+      setCurrentPage(page);
+    }
     try {
       // Send a GET resquest to the search movies endpoint using the id from the URL
       const response = await axios.get("http://localhost:8000/movies", {
@@ -185,8 +203,8 @@ export default function Page() {
           "Accept": 'application/json'
         },
         params: {
-          page: 1,      // Request the first page of result
-          size: 20,     // Limit results to 20 search movies
+          page: page,      // Request the first page of result
+          size: 8,     // Limit results to 8 search movies
           search_text: searchText !== "" ? searchText : undefined,
           search_year: selectedYear !== "" ? selectedYear : undefined,
           search_writer: selectedWriter !== "" ? selectedWriter : undefined,
@@ -197,6 +215,7 @@ export default function Page() {
       });
       // Get the item array from the Search Movies responses and store it in state
       setMovies(response.data.items as Movie[]);
+      setTotalPages(response.data.pages);
     } catch (error) {
       console.error(error);
     }
@@ -266,7 +285,7 @@ export default function Page() {
   async function getGenres() {
     try {
       // Send a Get request to the Get Genres endpoint using the id from the URL
-      const response = await axios.get("http://localhost:8000/genres", {
+      const response = await axios.get("http://localhost:8000/genres/movies", {
         headers: {
           "Accept": 'application/json'
         },
@@ -407,6 +426,29 @@ export default function Page() {
           </Card>
         ))}
       </div>
+
+      <Pagination className="mt-15 mb-10">
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious href="#" aria-disabled={currentPage <= 1}
+                                className={currentPage <= 1 ? "pointer-events-none opacity-50" : ""} 
+                                onClick={() => searchMovies(currentPage - 1)}/>
+          </PaginationItem>
+          {Array.from({length: totalPages}, (_, index) => index + 1).map(page => (
+            <PaginationItem key={page}>
+              <PaginationLink href="#" 
+                              isActive={page === currentPage} onClick={() => searchMovies(page)}>
+                {page}
+              </PaginationLink>
+            </PaginationItem>
+          ))}
+          <PaginationItem>
+            <PaginationNext href="#" aria-disabled={currentPage >= totalPages}
+                            className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""} 
+                            onClick={() => searchMovies(currentPage + 1)}/>
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
 
     </div>
   )

@@ -14,5 +14,5 @@ router = APIRouter()
 async def get_directors(session: SessionDep, page: int = 1, size: int = 20) -> Page[DirectorCardPublic]:
     set_page(Page[DirectorCardPublic])
     set_params(Params(size=size, page=page))
-    result = paginate(session, select(Director))
+    result = paginate(session, select(Director).order_by(Director.director_id))
     return result

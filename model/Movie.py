@@ -26,6 +26,8 @@ class Movie(BaseTable, table=True):
     year: int | None = Field(nullable=True)                         # Optional field
     length: str | None = Field(nullable=True)                       # Optional field
     cover: str | None = Field(nullable=True)                        # Optional field
+    back_drop: str | None = Field(nullable=True)                    # Optional field
+    video: str | None = Field(nullable=True)                        # Optional field
     movie_rating: float | None = Field(nullable=True)               # Optional field
     movie_rating_count: int | None = Field(nullable=True)           # Optional field
 
@@ -50,19 +52,24 @@ class MoviePublic(BaseTable):
     year: int | None
     length: str | None
     cover: str | None
+    video: str | None
     movie_rating: float | None
     movie_rating_count: int | None
     writers: list[str]
     actors: list[str]
     directors: list[str]
     genres: list[str]
+    reviews: list[str]
     
 # Create Data Transfer Object (DTO) for movie card view
 class MovieCardPublic(BaseTable): 
     movie_id: int | None
     movie_name: str
+    description: str | None
     year: int | None
     length: str | None
     cover: str | None
+    back_drop: str | None
     movie_rating: float | None
     movie_rating_count: int | None
+    

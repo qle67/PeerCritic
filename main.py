@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     yield
 
 # CORS configuration
-origins = ["http://localhost:5173", "http://localhost:3000", "http://169.254.244.127:3000"]
+origins = ["http://localhost:3000", "http://169.254.244.127:3000"]
 
 # Create FastAPI application instance
 app = FastAPI(lifespan=lifespan)

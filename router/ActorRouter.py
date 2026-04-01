@@ -14,5 +14,5 @@ router = APIRouter()
 async def get_actors(session: SessionDep, page: int = 1, size: int = 20) -> Page[ActorCardPublic]:
     set_page(Page[ActorCardPublic])
     set_params(Params(size=size, page=page))
-    result = paginate(session, select(Actor))
+    result = paginate(session, select(Actor).order_by(Actor.actor_id))
     return result

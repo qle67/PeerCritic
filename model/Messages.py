@@ -21,9 +21,9 @@ class Conversation(SQLModel, table=True):
         default=None, foreign_key="user.user_id", index=True
     )
 
-    last_message_id: Optional[int] = Field(
-        default=None, foreign_key="message.message_id"
-    )
+    # last_message_id: Optional[int] = Field(
+    #     default=None, foreign_key="message.message_id"
+    # )
     last_message_at: Optional[datetime] = Field(default=None, index=True)
     last_message_text: Optional[str] = Field(default=None)
     last_message_from_user_id: Optional[int] = Field(
@@ -50,7 +50,7 @@ class Conversation(SQLModel, table=True):
             "dm_user_high_id",
             "updated_at",
         ),
-        Index("ix_conversation_last_message_at", "last_message_at"),
+        # Index("ix_conversation_last_message_at", "last_message_at"),
     )
 
 

@@ -23,6 +23,7 @@ class Song(BaseTable, table=True):
     year: int | None = Field(nullable=True)                         # Optional field
     length: str | None = Field(nullable=True)                       # Optional field
     cover: str | None = Field(nullable=True)                        # Optional field
+    video: str | None = Field(nullable=True)                        # Optional field
     song_rating: float | None = Field(nullable=True)                # Optional field
     song_rating_count: int | None = Field(nullable=True)            # Optional field
 
@@ -39,7 +40,8 @@ class SongPublic(BaseTable):
     song_name: str                                                  
     year: int | None                          
     length: str | None                       
-    cover: str | None                         
+    cover: str | None   
+    video: str | None
     song_rating: float | None                 
     song_rating_count: int | None 
     
