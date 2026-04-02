@@ -73,3 +73,42 @@ async def get_my_reviews(
             )
 
     return out
+
+
+@router.post("/reviews/{song_id}")
+async def song_review(
+	session: SessionDep,
+	current_user_id: int,
+	current_song_id: int,
+	review_body: str,
+):
+	stmt = (select(Review).where(Review.review_id > 0))
+	list_of_reviews = session.exec(stmt).all()
+	review = Review(
+		review_id = len(list_of_reviews) + 1,
+		review = review_body,
+		user_id = current_user_id,
+		song_id = current_song_id,)
+	session.add(review)
+	session.commit()
+	return review
+
+
+@router.post("/reviews/{movie_id}")
+async def movie_review(
+	session: SessionDep,
+	current_user_id: int,
+	current_movie_id: int,
+	review_body: str,
+):
+	stmt = (select(Review).where(Review.review_id > 0))
+	list_of_reviews = session.exec(stmt).all()
+	review = Review(
+		review_id = len(list_of_reviews) + 1,
+		review = review_body,
+		user_id = current_user_id,
+		song_id = None,
+		movie_id = current_movie_id,)
+	session.add(review)
+	session.commit()
+	return review
