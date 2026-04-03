@@ -10,7 +10,7 @@ from router.Authentication import get_current_user
 
 router = APIRouter(tags=["users"])
 
-@router.get("/users/search")
+@router.get("/users/search/by-username")
 def search_users(
     username: str,
     current_user: Annotated[User, Depends(get_current_user)],

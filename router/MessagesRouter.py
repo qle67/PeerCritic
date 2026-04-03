@@ -12,6 +12,7 @@ from model.Profile import Profile
 from model.Friendship import Friendship
 from model.Messages import Conversation, ConversationMember, Message
 from router.Authentication import get_current_user
+from ws_manager import manager
 
 def canonical_pair(a: int, b: int) -> tuple[int, int]:
     return (a, b) if a < b else (b, a)
@@ -243,7 +244,7 @@ def list_messages(
 
 
 @router.post("/conversations/{conversation_id}/messages")
-def send_message(
+async def send_message(
     conversation_id: int,
     payload: dict,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -280,15 +281,12 @@ def send_message(
     session.commit()
     session.refresh(msg)
 
-    # conv.last_message_id = msg.message_id
     conv.last_message_at = msg.sent_datetime
     conv.last_message_text = msg.message_text[:200]
     conv.last_message_from_user_id = msg.from_user_id
     conv.updated_at = now
     session.add(conv)
-    session.commit()
 
-    # Update unread counts for all other active members
     others = session.exec(
         select(ConversationMember).where(
             ConversationMember.conversation_id == conversation_id,
@@ -296,6 +294,8 @@ def send_message(
             ConversationMember.user_id != current_user.user_id,
         )
     ).all()
+    recipient_ids = [m.user_id for m in others]
+
     for m in others:
         m.unread_count = (m.unread_count or 0) + 1
         session.add(m)
@@ -306,13 +306,40 @@ def send_message(
 
     session.commit()
 
-    return {
+    response_payload = {
         "messageId": msg.message_id,
         "conversationId": msg.conversation_id,
         "fromUserId": msg.from_user_id,
         "messageText": msg.message_text,
-        "sentDatetime": msg.sent_datetime,
+        "sentDatetime": msg.sent_datetime.isoformat(),
     }
+
+    await manager.broadcast_to_conversation(
+        conversation_id,
+        {
+            "type": "message",
+            "message": response_payload,
+        },
+    )
+
+    for uid in recipient_ids:
+        await manager.broadcast_to_user(
+            uid,
+            {
+                "type": "inbox_update",
+                "conversationId": conversation_id,
+            },
+        )
+
+    await manager.broadcast_to_user(
+        current_user.user_id,
+        {
+            "type": "inbox_update",
+            "conversationId": conversation_id,
+        },
+    )
+
+    return response_payload
 
 
 @router.post("/conversations/{conversation_id}/read")

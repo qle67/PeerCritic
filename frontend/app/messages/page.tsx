@@ -125,58 +125,103 @@ export default function Messages() {
   }
 
   function ensureWs() {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
+    if (
+      wsRef.current &&
+      (wsRef.current.readyState === WebSocket.OPEN ||
+        wsRef.current.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
+    }
 
     const token = localStorage.getItem("accessToken");
-    if (!token) return;
+    if (!token) {
+      console.log("No access token found for WebSocket");
+      return;
+    }
 
-    const ws = new WebSocket(`ws://localhost:8000/ws/messages?token=${token}`);
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const ws = new WebSocket(
+      `${protocol}://localhost:8000/ws/messages?token=${encodeURIComponent(token)}`
+    );
+
     wsRef.current = ws;
 
     ws.onopen = () => {
-      if (selected?.conversationId) {
-        ws.send(
-          JSON.stringify({
-            action: "subscribe",
-            conversationId: selected.conversationId,
-          })
-        );
-        subscribedConvRef.current = selected.conversationId;
-      }
+      console.log("WS open");
     };
 
     ws.onmessage = (event) => {
+      console.log("WS raw message:", event.data);
+
       try {
         const data = JSON.parse(event.data);
 
         if (data.type === "message" && data.message) {
           const m = data.message as MsgRow;
 
+          const isCurrentConversation =
+            !!selectedRef.current &&
+            m.conversationId === selectedRef.current.conversationId;
+
           setMessages((prev) => {
-            if (selectedRef.current && m.conversationId === selectedRef.current.conversationId) {
-              return [...prev, m];
-            }
-            return prev;
+            if (!isCurrentConversation) return prev;
+            if (prev.some((x) => x.messageId === m.messageId)) return prev;
+            return [...prev, m];
           });
 
-          refreshConversations().catch(console.error);
+          const refresh = () => refreshConversations().catch(console.log);
+
+          if (isCurrentConversation) {
+            api.post(
+              `/messages/conversations/${m.conversationId}/read`,
+              {},
+              { headers: authHeaders() }
+            )
+              .then(refresh)
+              .catch(console.log);
+          } else {
+            refresh();
+          }
         }
 
         if (data.type === "conversation_update") {
-          refreshConversations().catch(console.error);
+          refreshConversations().catch(console.log);
+        }
+
+        if (data.type === "inbox_update") {
+          refreshConversations().catch(console.log);
+        }
+
+        if (data.type === "error") {
+          console.log("WS server error message:", data.message);
+        }
+
+        if (data.type === "connected") {
+          console.log("WS connected ack:", data);
+        }
+
+        if (data.type === "subscribed") {
+          console.log("WS subscribed ack:", data);
+        }
+
+        if (data.type === "unsubscribed") {
+          console.log("WS unsubscribed ack:", data);
         }
       } catch (e) {
-        console.error("WS message parse error", e);
+        console.log("WS message parse error:", e);
       }
     };
 
-    ws.onclose = () => {
-      wsRef.current = null;
-      subscribedConvRef.current = null;
+    ws.onerror = () => {
+      console.log("WS error event fired");
     };
 
-    ws.onerror = (e) => {
-      console.error("WebSocket error", e);
+    ws.onclose = (event) => {
+      console.log(
+        `WS close code=${event.code} reason="${event.reason}" clean=${event.wasClean}`
+      );
+      wsRef.current = null;
+      subscribedConvRef.current = null;
     };
   }
 
@@ -216,24 +261,40 @@ export default function Messages() {
     setSelected(conv);
 
     ensureWs();
-
     const ws = wsRef.current;
 
-    if (ws && subscribedConvRef.current !== conv.conversationId) {
-      const subscribe = () => {
+    if (ws) {
+      if (
+        ws.readyState === WebSocket.OPEN &&
+        subscribedConvRef.current &&
+        subscribedConvRef.current !== conv.conversationId
+      ) {
         ws.send(
           JSON.stringify({
-            action: "subscribe",
-            conversationId: conv.conversationId,
+            action: "unsubscribe",
+            conversationId: subscribedConvRef.current,
           })
         );
-        subscribedConvRef.current = conv.conversationId;
-      };
+      }
 
-      if (ws.readyState === WebSocket.OPEN) {
-        subscribe();
-      } else {
-        ws.addEventListener("open", subscribe, { once: true });
+      if (subscribedConvRef.current !== conv.conversationId) {
+        const subscribe = () => {
+          if (ws.readyState !== WebSocket.OPEN) return;
+
+          ws.send(
+            JSON.stringify({
+              action: "subscribe",
+              conversationId: conv.conversationId,
+            })
+          );
+          subscribedConvRef.current = conv.conversationId;
+        };
+
+        if (ws.readyState === WebSocket.OPEN) {
+          subscribe();
+        } else if (ws.readyState === WebSocket.CONNECTING) {
+          ws.addEventListener("open", subscribe, { once: true });
+        }
       }
     }
 
@@ -267,9 +328,14 @@ export default function Messages() {
       { headers: authHeaders() }
     );
 
-    setMessages((prev) => [...prev, res.data]);
+    const newMsg = res.data;
 
-    await refreshConversations();
+    setMessages((prev) => {
+      if (prev.some((m) => m.messageId === newMsg.messageId)) return prev;
+      return [...prev, newMsg];
+    });
+
+    refreshConversations().catch(console.log);
   }
 
   function senderInfo(fromUserId: number) {
@@ -455,7 +521,7 @@ export default function Messages() {
                               {title}
                             </div>
 
-                            {c.unreadCount > 0 ? (
+                            {c.unreadCount > 0 && selected?.conversationId !== c.conversationId ? (
                               <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-xs font-semibold text-white">
                                 {c.unreadCount}
                               </span>

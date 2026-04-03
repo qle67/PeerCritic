@@ -17,7 +17,7 @@ from router import (
     FriendsRouter,
     UsersRouter,
     MessagesRouter,
-    #WsMessagesRouter,
+    WsMessagesRouter,
 )
 from router.Admin import admin
 
@@ -65,7 +65,7 @@ app.include_router(FriendsRouter.router)
 app.include_router(MessagesRouter.router)
 
 #Register Messages websocket router
-#app.include_router(WsMessagesRouter.router)
+app.include_router(WsMessagesRouter.router)
 
 # Register Writer routes
 app.include_router(WriterRouter.router)
@@ -84,15 +84,3 @@ app.include_router(ArtistRouter.router)
 
 #Register Users routes
 app.include_router(UsersRouter.router)
-
-# Register Writer routes
-app.include_router(WriterRouter.router)
-
-# Register Actor routes
-app.include_router(ActorRouter.router)
-
-# Register Director routes
-app.include_router(DirectorRouter.router)
-
-# Register Genre routes
-app.include_router(GenreRouter.router)
