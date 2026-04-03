@@ -1,11 +1,12 @@
 "use client";
 
 import Navbar from "@/app/navbar";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Plus, Loader2, Search } from "lucide-react";
+import { MessageSquare, Plus, X } from "lucide-react";
+import Image from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -91,9 +92,68 @@ export default function Messages() {
   const wsRef = useRef<WebSocket | null>(null);
   const subscribedConvRef = useRef<number | null>(null);
   const selectedRef = useRef<ConversationRow | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const shouldStickToBottomRef = useRef(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMoreOlder, setHasMoreOlder] = useState(true);
+
+  useEffect(() => {
+  if (shouldStickToBottomRef.current) {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+}, [messages]);
+
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
+
+  async function loadOlderMessages() {
+  if (!selected || loadingOlder || !hasMoreOlder || messages.length === 0) return;
+
+  const container = messagesContainerRef.current;
+  const oldestMessageId = messages[0]?.messageId;
+  if (!oldestMessageId) return;
+
+  setLoadingOlder(true);
+
+  const previousScrollHeight = container?.scrollHeight ?? 0;
+
+  try {
+    const res = await api.get<MsgRow[]>(
+      `/messages/conversations/${selected.conversationId}/messages?limit=50&before_message_id=${oldestMessageId}`,
+      { headers: authHeaders() }
+    );
+
+    const older = res.data;
+
+    if (older.length === 0) {
+      setHasMoreOlder(false);
+      return;
+    }
+
+    setMessages((prev) => {
+      const existingIds = new Set(prev.map((m) => m.messageId));
+      const dedupedOlder = older.filter((m) => !existingIds.has(m.messageId));
+      return [...dedupedOlder, ...prev];
+    });
+
+    requestAnimationFrame(() => {
+      const el = messagesContainerRef.current;
+      if (!el) return;
+
+      const newScrollHeight = el.scrollHeight;
+      const heightDiff = newScrollHeight - previousScrollHeight;
+      el.scrollTop = el.scrollTop + heightDiff;
+    });
+
+    if (older.length < 50) {
+      setHasMoreOlder(false);
+    }
+  } finally {
+    setLoadingOlder(false);
+  }
+}
 
   async function loadMembers(conversationId: number) {
     const res = await api.get<MemberRow[]>(
@@ -124,106 +184,122 @@ export default function Messages() {
     }
   }
 
-  function ensureWs() {
-    if (
-      wsRef.current &&
-      (wsRef.current.readyState === WebSocket.OPEN ||
-        wsRef.current.readyState === WebSocket.CONNECTING)
-    ) {
-      return;
-    }
-
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      console.log("No access token found for WebSocket");
-      return;
-    }
-
-    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-    const ws = new WebSocket(
-      `${protocol}://localhost:8000/ws/messages?token=${encodeURIComponent(token)}`
-    );
-
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log("WS open");
-    };
-
-    ws.onmessage = (event) => {
-      console.log("WS raw message:", event.data);
-
-      try {
-        const data = JSON.parse(event.data);
-
-        if (data.type === "message" && data.message) {
-          const m = data.message as MsgRow;
-
-          const isCurrentConversation =
-            !!selectedRef.current &&
-            m.conversationId === selectedRef.current.conversationId;
-
-          setMessages((prev) => {
-            if (!isCurrentConversation) return prev;
-            if (prev.some((x) => x.messageId === m.messageId)) return prev;
-            return [...prev, m];
-          });
-
-          const refresh = () => refreshConversations().catch(console.log);
-
-          if (isCurrentConversation) {
-            api.post(
-              `/messages/conversations/${m.conversationId}/read`,
-              {},
-              { headers: authHeaders() }
-            )
-              .then(refresh)
-              .catch(console.log);
-          } else {
-            refresh();
-          }
-        }
-
-        if (data.type === "conversation_update") {
-          refreshConversations().catch(console.log);
-        }
-
-        if (data.type === "inbox_update") {
-          refreshConversations().catch(console.log);
-        }
-
-        if (data.type === "error") {
-          console.log("WS server error message:", data.message);
-        }
-
-        if (data.type === "connected") {
-          console.log("WS connected ack:", data);
-        }
-
-        if (data.type === "subscribed") {
-          console.log("WS subscribed ack:", data);
-        }
-
-        if (data.type === "unsubscribed") {
-          console.log("WS unsubscribed ack:", data);
-        }
-      } catch (e) {
-        console.log("WS message parse error:", e);
-      }
-    };
-
-    ws.onerror = () => {
-      console.log("WS error event fired");
-    };
-
-    ws.onclose = (event) => {
-      console.log(
-        `WS close code=${event.code} reason="${event.reason}" clean=${event.wasClean}`
-      );
-      wsRef.current = null;
-      subscribedConvRef.current = null;
-    };
+  function isNearBottom(el: HTMLDivElement, threshold = 120) {
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    return distanceFromBottom <= threshold;
   }
+
+function handleMessagesScroll() {
+  const el = messagesContainerRef.current;
+  if (!el) return;
+
+  shouldStickToBottomRef.current = isNearBottom(el);
+
+  if (el.scrollTop <= 120) {
+    loadOlderMessages().catch(console.log);
+  }
+}
+
+const ensureWs = useCallback(() => {
+  if (
+    wsRef.current &&
+    (wsRef.current.readyState === WebSocket.OPEN ||
+      wsRef.current.readyState === WebSocket.CONNECTING)
+  ) {
+    return;
+  }
+
+  const token = localStorage.getItem("accessToken");
+  if (!token) {
+    console.log("No access token found for WebSocket");
+    return;
+  }
+
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const ws = new WebSocket(
+    `${protocol}://localhost:8000/ws/messages?token=${encodeURIComponent(token)}`
+  );
+
+  wsRef.current = ws;
+
+  ws.onopen = () => {
+    console.log("WS open");
+  };
+
+  ws.onmessage = (event) => {
+    console.log("WS raw message:", event.data);
+
+    try {
+      const data = JSON.parse(event.data);
+
+      if (data.type === "message" && data.message) {
+        const m = data.message as MsgRow;
+
+        const isCurrentConversation =
+          !!selectedRef.current &&
+          m.conversationId === selectedRef.current.conversationId;
+
+        setMessages((prev) => {
+          if (!isCurrentConversation) return prev;
+          if (prev.some((x) => x.messageId === m.messageId)) return prev;
+          return [...prev, m];
+        });
+
+        const refresh = () => refreshConversations().catch(console.log);
+
+        if (isCurrentConversation) {
+          api.post(
+            `/messages/conversations/${m.conversationId}/read`,
+            {},
+            { headers: authHeaders() }
+          )
+            .then(refresh)
+            .catch(console.log);
+        } else {
+          refresh();
+        }
+      }
+
+      if (data.type === "conversation_update") {
+        refreshConversations().catch(console.log);
+      }
+
+      if (data.type === "inbox_update") {
+        refreshConversations().catch(console.log);
+      }
+
+      if (data.type === "error") {
+        console.log("WS server error message:", data.message);
+      }
+
+      if (data.type === "connected") {
+        console.log("WS connected ack:", data);
+      }
+
+      if (data.type === "subscribed") {
+        console.log("WS subscribed ack:", data);
+      }
+
+      if (data.type === "unsubscribed") {
+        console.log("WS unsubscribed ack:", data);
+      }
+    } catch (e) {
+      console.log("WS message parse error:", e);
+    }
+  };
+
+  ws.onerror = () => {
+    console.log("WS error event fired");
+  };
+
+  ws.onclose = (event) => {
+    console.log(
+      `WS close code=${event.code} reason="${event.reason}" clean=${event.wasClean}`
+    );
+    wsRef.current = null;
+    subscribedConvRef.current = null;
+  };
+}, []);
 
   async function createDmWith(friendUserId: number) {
     const res = await api.post<{ conversationId: number }>(
@@ -250,6 +326,49 @@ export default function Messages() {
     setFriendQuery("");
   }
 
+  async function deleteConversation(conv: ConversationRow) {
+    const isCurrentlySelected = selected?.conversationId === conv.conversationId;
+    const previousSelected = selected;
+    const previousMessages = messages;
+    const previousMemberMap = memberMap;
+    const ws = wsRef.current;
+
+    if (isCurrentlySelected) {
+      setSelected(null);
+      setMessages([]);
+      setMemberMap({});
+    }
+
+    if (
+      ws &&
+      ws.readyState === WebSocket.OPEN &&
+      subscribedConvRef.current === conv.conversationId
+    ) {
+      ws.send(
+        JSON.stringify({
+          action: "unsubscribe",
+          conversationId: conv.conversationId,
+        })
+      );
+      subscribedConvRef.current = null;
+    }
+
+    try {
+      await api.delete(`/messages/conversations/${conv.conversationId}`, {
+        headers: authHeaders(),
+      });
+
+      await refreshConversations();
+    } catch (err) {
+      if (isCurrentlySelected) {
+        setSelected(previousSelected);
+        setMessages(previousMessages);
+        setMemberMap(previousMemberMap);
+      }
+      throw err;
+    }
+  }
+
   async function refreshConversations() {
     const res = await api.get<ConversationRow[]>("/messages/conversations", {
       headers: authHeaders(),
@@ -258,7 +377,10 @@ export default function Messages() {
   }
 
   async function openConversation(conv: ConversationRow) {
-    setSelected(conv);
+  shouldStickToBottomRef.current = true;
+  setHasMoreOlder(true);
+  setLoadingOlder(false);
+  setSelected(conv);
 
     ensureWs();
     const ws = wsRef.current;
@@ -356,16 +478,16 @@ export default function Messages() {
   }
 
 
-  useEffect(() => {
-    fetchMe().catch(console.error);
-    refreshConversations().catch(console.error);
+useEffect(() => {
+  fetchMe().catch(console.error);
+  refreshConversations().catch(console.error);
 
-    ensureWs();
+  ensureWs();
 
-    return () => {
-      wsRef.current?.close();
-    };
-  }, []);
+  return () => {
+    wsRef.current?.close();
+  };
+}, [ensureWs]);
 
   const headerTitle = selected
     ? selected.isGroup
@@ -403,7 +525,7 @@ export default function Messages() {
                         size="icon"
                         variant="outline"
                         className="h-9 w-9 rounded-xl border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-200"
-                        aria-label="New message"
+                        aria-label="Create a new chat"
                       >
                         <MessageSquare className="h-4 w-4" />
                       </Button>
@@ -411,7 +533,7 @@ export default function Messages() {
 
                     <DialogContent className="sm:max-w-md">
                       <DialogHeader>
-                        <DialogTitle>New message</DialogTitle>
+                        <DialogTitle>Create a new chat</DialogTitle>
                       </DialogHeader>
 
                       <div className="space-y-3">
@@ -439,11 +561,13 @@ export default function Messages() {
                                   className="w-full flex items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted"
                                 >
                                   {f.avatar ? (
-                                    <img
-                                      src={f.avatar}
-                                      alt=""
-                                      className="h-9 w-9 rounded-full object-cover"
-                                    />
+                                    <Image
+  src={f.avatar}
+  alt=""
+  width={40}
+  height={40}
+  className="h-10 w-10 rounded-full object-cover"
+/>
                                   ) : (
                                     <div className="h-9 w-9 rounded-full bg-muted" />
                                   )}
@@ -495,45 +619,66 @@ export default function Messages() {
                   const avatar = c.isGroup ? null : c.otherUser?.avatar ?? null;
 
                   return (
-                    <button
+                    <div
                       key={c.conversationId}
-                      onClick={() => openConversation(c)}
                       className={cx(
-                        "w-full text-left rounded-xl px-3 py-2.5 transition-colors",
+                        "group w-full rounded-xl transition-colors",
                         "hover:bg-orange-200/50 dark:hover:bg-orange-900/30",
                         active && "bg-orange-200/60 dark:bg-orange-900/35"
                       )}
                     >
-                      <div className="flex items-center gap-3">
-                        {avatar ? (
-                          <img
-                            src={avatar}
-                            alt=""
-                            className="h-10 w-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 rounded-full bg-orange-200/70 dark:bg-orange-900/40" />
-                        )}
+                      <div className="flex items-center gap-2 px-3 py-2.5">
+                        <button
+                          onClick={() => openConversation(c)}
+                          className="min-w-0 flex-1 text-left"
+                        >
+                          <div className="flex items-center gap-3">
+                            {avatar ? (
+                              <Image
+  src={avatar}
+  alt=""
+  width={40}
+  height={40}
+  className="h-10 w-10 rounded-full object-cover"
+/>
+                            ) : (
+                              <div className="h-10 w-10 rounded-full bg-orange-200/70 dark:bg-orange-900/40" />
+                            )}
 
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="font-medium leading-tight truncate">
-                              {title}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="font-medium leading-tight truncate">
+                                  {title}
+                                </div>
+
+                                {c.unreadCount > 0 && selected?.conversationId !== c.conversationId ? (
+                                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-xs font-semibold text-white">
+                                    {c.unreadCount}
+                                  </span>
+                                ) : null}
+                              </div>
+
+                              <div className="text-sm text-muted-foreground truncate">
+                                {c.lastMessageText ?? "Say Hello!"}
+                              </div>
                             </div>
-
-                            {c.unreadCount > 0 && selected?.conversationId !== c.conversationId ? (
-                              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1.5 text-xs font-semibold text-white">
-                                {c.unreadCount}
-                              </span>
-                            ) : null}
                           </div>
+                        </button>
 
-                          <div className="text-sm text-muted-foreground truncate">
-                            {c.lastMessageText ?? "—"}
-                          </div>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteConversation(c).catch(console.error);
+                          }}
+                          className="shrink-0 rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-orange-300/50 hover:text-foreground group-hover:opacity-100 dark:hover:bg-orange-800/40"
+                          aria-label="Delete conversation"
+                          title="Delete conversation"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
 
@@ -554,11 +699,13 @@ export default function Messages() {
                 <div className="border-b border-orange-200 bg-orange-100/70 dark:border-orange-800 dark:bg-orange-950/55 backdrop-blur supports-[backdrop-filter]:bg-orange-100/60 dark:supports-[backdrop-filter]:bg-orange-950/45">
                   <div className="px-4 py-3 flex items-center gap-3">
                     {headerAvatar ? (
-                      <img
-                        src={headerAvatar}
-                        alt=""
-                        className="h-8 w-8 rounded-full object-cover"
-                      />
+                      <Image
+  src={headerAvatar}
+  alt=""
+  width={40}
+  height={40}
+  className="h-10 w-10 rounded-full object-cover"
+/>
                     ) : (
                       <div className="h-8 w-8 rounded-full bg-orange-200/70 dark:bg-orange-900/40" />
                     )}
@@ -575,7 +722,11 @@ export default function Messages() {
                 </div>
 
                 {/*Messages*/}
-                <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-1">
+                <div
+                  ref={messagesContainerRef}
+                  onScroll={handleMessagesScroll}
+                  className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-0.5"
+                >
                   {messages.map((m, idx) => {
                     const info = senderInfo(m.fromUserId);
                     const prev = messages[idx - 1];
@@ -585,30 +736,36 @@ export default function Messages() {
                       <div
                         key={m.messageId}
                         className={cx(
-                          "flex gap-2.5 rounded-xl px-2 py-1",
+                          "flex gap-2.5 rounded-xl px-2",
+                          isGrouped ? "py-0.5" : "py-1.5",
                           "hover:bg-orange-100/60 dark:hover:bg-orange-950/30"
                         )}
                       >
-                        <div className="w-10">
+                        <div className="w-10 shrink-0">
                           {!isGrouped ? (
                             info.avatar ? (
-                              <img
-                                src={info.avatar}
-                                alt=""
-                                className="h-10 w-10 rounded-full object-cover"
-                              />
+                              <Image
+  src={info.avatar}
+  alt=""
+  width={40}
+  height={40}
+  className="h-10 w-10 rounded-full object-cover"
+/>
                             ) : (
                               <div className="h-10 w-10 rounded-full bg-orange-200/70 dark:bg-orange-900/40" />
                             )
-                          ) : (
-                            <div className="h-10 w-10" />
-                          )}
+                          ) : null}
                         </div>
 
                         <div className="min-w-0 flex-1">
                           {!isGrouped ? (
                             <div className="flex items-baseline gap-2">
-                              <div className={cx("font-semibold text-sm truncate", info.isMe && "text-orange-700 dark:text-orange-200")}>
+                              <div
+                                className={cx(
+                                  "font-semibold text-sm truncate",
+                                  info.isMe && "text-orange-700 dark:text-orange-200"
+                                )}
+                              >
                                 {info.username}
                               </div>
                               <div className="text-xs text-muted-foreground">
@@ -617,7 +774,7 @@ export default function Messages() {
                             </div>
                           ) : null}
 
-                          <div className="text-sm leading-snug text-foreground/90 whitespace-pre-wrap break-words">
+                          <div className="text-sm leading-tight text-foreground/90 whitespace-pre-wrap break-words">
                             {m.messageText}
                           </div>
                         </div>
@@ -631,6 +788,8 @@ export default function Messages() {
                       No messages yet. Say hi!
                     </div>
                   ) : null}
+
+                  <div ref={bottomRef} />
                 </div>
 
                 {/*Messege Composer*/}
@@ -639,6 +798,7 @@ export default function Messages() {
                     <div className="flex items-center gap-2 rounded-2xl bg-orange-50 dark:bg-orange-950/40 px-4 py-3 border border-orange-200 dark:border-orange-800">
                       <Input
                         value={draft}
+                        maxLength={2000}
                         onChange={(e) => setDraft(e.target.value)}
                         placeholder={
                           selected.isGroup
@@ -650,6 +810,9 @@ export default function Messages() {
                           if (e.key === "Enter") sendMessage();
                         }}
                       />
+                      <div className="text-xs text-muted-foreground px-1 text-right">
+                        {draft.length}/2000
+                      </div>
                       <Button
                         onClick={sendMessage}
                         className="bg-orange-500 hover:bg-orange-400"

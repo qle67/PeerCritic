@@ -86,7 +86,7 @@ class Message(SQLModel, table=True):
     conversation_id: int = Field(foreign_key="conversation.conversation_id", index=True)
     from_user_id: int = Field(foreign_key="user.user_id", index=True)
 
-    message_text: str = Field(nullable=False)
+    message_text: str = Field(nullable=False, max_length=2000)
     sent_datetime: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc), index=True
     )

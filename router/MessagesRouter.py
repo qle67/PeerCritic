@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import select
+from sqlmodel import Session, select
 
 from model.database import SessionDep
 from model.User import User
@@ -14,6 +14,47 @@ from model.Messages import Conversation, ConversationMember, Message
 from router.Authentication import get_current_user
 from ws_manager import manager
 
+def hard_delete_conversation(session: Session, conversation_id: int) -> None:
+    """
+    Fully delete a conversation and all dependent rows in FK-safe order.
+    """
+
+    members = session.exec(
+        select(ConversationMember).where(
+            ConversationMember.conversation_id == conversation_id
+        )
+    ).all()
+
+    for member in members:
+        if member.last_read_message_id is not None:
+            member.last_read_message_id = None
+            session.add(member)
+
+    session.commit()
+
+    messages = session.exec(
+        select(Message).where(Message.conversation_id == conversation_id)
+    ).all()
+    for msg in messages:
+        session.delete(msg)
+
+    session.commit()
+
+    members = session.exec(
+        select(ConversationMember).where(
+            ConversationMember.conversation_id == conversation_id
+        )
+    ).all()
+    for member in members:
+        session.delete(member)
+
+    session.commit()
+
+    conv = session.get(Conversation, conversation_id)
+    if conv:
+        session.delete(conv)
+        session.commit()
+
 def canonical_pair(a: int, b: int) -> tuple[int, int]:
     return (a, b) if a < b else (b, a)
 
@@ -21,7 +62,6 @@ def canonical_pair(a: int, b: int) -> tuple[int, int]:
 router = APIRouter(prefix="/messages", tags=["messages"])
 
 
-# Conversations
 @router.get("/conversations")
 def list_conversations(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -76,7 +116,6 @@ def list_conversations(
                 "conversationId": conv.conversation_id,
                 "isGroup": conv.is_group,
                 "conversationName": conv.conversation_name,
-
                 "otherUser": (
                     {
                         "userId": other_user.user_id,
@@ -88,9 +127,7 @@ def list_conversations(
                     if other_user
                     else None
                 ),
-
                 "unreadCount": member.unread_count,
-
                 "lastMessageText": conv.last_message_text,
                 "lastMessageAt": conv.last_message_at,
                 "lastMessageFromUserId": conv.last_message_from_user_id,
@@ -108,6 +145,7 @@ def create_or_get_dm(
 ):
     """
     Create or return a DM conversation between current_user and other_user_id.
+    If both users previously deleted the DM, create a fresh conversation.
     """
     if other_user_id == current_user.user_id:
         raise HTTPException(400, "Cannot DM yourself")
@@ -132,9 +170,63 @@ def create_or_get_dm(
     ).first()
 
     if conv:
-        return {"conversationId": conv.conversation_id}
+        members = session.exec(
+            select(ConversationMember).where(
+                ConversationMember.conversation_id == conv.conversation_id
+            )
+        ).all()
 
-    # Create new DM conversation
+        all_hidden = len(members) > 0 and all(m.left_datetime is not None for m in members)
+
+        if all_hidden:
+            old_conversation_id = conv.conversation_id
+            hard_delete_conversation(session, old_conversation_id)
+            conv = None
+        else:
+            now = datetime.now(timezone.utc)
+
+            my_member = session.exec(
+                select(ConversationMember).where(
+                    ConversationMember.conversation_id == conv.conversation_id,
+                    ConversationMember.user_id == current_user.user_id,
+                )
+            ).first()
+
+            if my_member:
+                if my_member.left_datetime is not None:
+                    my_member.left_datetime = None
+                    my_member.joined_datetime = now
+                    my_member.unread_count = 0
+                    session.add(my_member)
+            else:
+                my_member = ConversationMember(
+                    conversation_id=conv.conversation_id,
+                    user_id=current_user.user_id,
+                    joined_datetime=now,
+                )
+                session.add(my_member)
+
+            other_member = session.exec(
+                select(ConversationMember).where(
+                    ConversationMember.conversation_id == conv.conversation_id,
+                    ConversationMember.user_id == other_user_id,
+                )
+            ).first()
+
+            if not other_member:
+                other_member = ConversationMember(
+                    conversation_id=conv.conversation_id,
+                    user_id=other_user_id,
+                    joined_datetime=now,
+                )
+                session.add(other_member)
+
+            conv.updated_at = now
+            session.add(conv)
+            session.commit()
+
+            return {"conversationId": conv.conversation_id}
+
     conv = Conversation(
         is_group=False,
         conversation_name=None,
@@ -148,8 +240,16 @@ def create_or_get_dm(
     session.refresh(conv)
 
     now = datetime.now(timezone.utc)
-    m1 = ConversationMember(conversation_id=conv.conversation_id, user_id=current_user.user_id, joined_datetime=now)
-    m2 = ConversationMember(conversation_id=conv.conversation_id, user_id=other_user_id, joined_datetime=now)
+    m1 = ConversationMember(
+        conversation_id=conv.conversation_id,
+        user_id=current_user.user_id,
+        joined_datetime=now,
+    )
+    m2 = ConversationMember(
+        conversation_id=conv.conversation_id,
+        user_id=other_user_id,
+        joined_datetime=now,
+    )
     session.add(m1)
     session.add(m2)
     session.commit()
@@ -168,7 +268,6 @@ def list_members(
         select(ConversationMember).where(
             ConversationMember.conversation_id == conversation_id,
             ConversationMember.user_id == current_user.user_id,
-            ConversationMember.left_datetime.is_(None),
         )
     ).first()
     if not member:
@@ -180,7 +279,6 @@ def list_members(
         .join(Profile, Profile.user_id == User.user_id, isouter=True)
         .where(
             ConversationMember.conversation_id == conversation_id,
-            ConversationMember.left_datetime.is_(None),
         )
         .order_by(User.username.asc())
     ).all()
@@ -199,6 +297,7 @@ def list_members(
         )
 
     return out
+
 
 @router.get("/conversations/{conversation_id}/messages")
 def list_messages(
@@ -250,9 +349,15 @@ async def send_message(
     current_user: Annotated[User, Depends(get_current_user)],
     session: SessionDep,
 ):
+    MAX_MESSAGE_LENGTH = 2000
+
     message_text = (payload.get("messageText") or "").strip()
+
     if not message_text:
         raise HTTPException(400, "messageText is required")
+
+    if len(message_text) > MAX_MESSAGE_LENGTH:
+        raise HTTPException(400, f"Message too long (max {MAX_MESSAGE_LENGTH} characters)")
 
     member = session.exec(
         select(ConversationMember).where(
@@ -290,15 +395,20 @@ async def send_message(
     others = session.exec(
         select(ConversationMember).where(
             ConversationMember.conversation_id == conversation_id,
-            ConversationMember.left_datetime.is_(None),
             ConversationMember.user_id != current_user.user_id,
         )
     ).all()
-    recipient_ids = [m.user_id for m in others]
+
+    recipient_ids = []
 
     for m in others:
+        if conv.is_group is False and m.left_datetime is not None:
+            m.left_datetime = None
+            m.joined_datetime = now
+
         m.unread_count = (m.unread_count or 0) + 1
         session.add(m)
+        recipient_ids.append(m.user_id)
 
     member.unread_count = 0
     member.last_read_message_id = msg.message_id
@@ -368,8 +478,54 @@ def mark_conversation_read(
         raise HTTPException(404, "Conversation not found")
 
     member.unread_count = 0
-    # member.last_read_message_id = conv.last_message_id
     session.add(member)
     session.commit()
 
     return {"ok": True}
+
+
+@router.delete("/conversations/{conversation_id}")
+async def delete_conversation_for_me(
+    conversation_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: SessionDep,
+):
+    """
+    Hide this conversation from the current user's inbox.
+    Does not delete it for other users.
+    """
+    member = session.exec(
+        select(ConversationMember).where(
+            ConversationMember.conversation_id == conversation_id,
+            ConversationMember.user_id == current_user.user_id,
+            ConversationMember.left_datetime.is_(None),
+        )
+    ).first()
+
+    if not member:
+        raise HTTPException(404, "Conversation not found")
+
+    conv = session.get(Conversation, conversation_id)
+    if not conv:
+        raise HTTPException(404, "Conversation not found")
+
+    now = datetime.now(timezone.utc)
+
+    member.left_datetime = now
+    member.unread_count = 0
+    session.add(member)
+
+    conv.updated_at = now
+    session.add(conv)
+
+    session.commit()
+
+    await manager.broadcast_to_user(
+        current_user.user_id,
+        {
+            "type": "inbox_update",
+            "conversationId": conversation_id,
+        },
+    )
+
+    return {"ok": True, "conversationId": conversation_id}
