@@ -1,7 +1,7 @@
 "use client"
 
 import Navbar from "@/app/navbar";
-import {useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import {
   Carousel,
@@ -11,7 +11,8 @@ import {
   CarouselNext,
   CarouselPrevious
 } from "@/components/ui/carousel";
-import {Card, CardContent} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import HomePageMovies from "@/app/home-page-carousels";
 import Autoplay from "embla-carousel-autoplay";
 import Link from "next/link";
 
@@ -33,7 +34,7 @@ export default function Home() {
   // State to hold the fetched Search Movies 
   const [movies, setMovies] = useState<Movie[]>([]);
 
-  
+
   // Async function to fetch Search Movies from API
   async function searchMovies() {
 
@@ -59,13 +60,13 @@ export default function Home() {
   useEffect(() => {
     searchMovies();
   }, []);
-  
-  
+
+
   return (
     <div className="mx-auto">
       <Navbar />
-      
-      <div className="w-full mt-5">
+
+      <div className="w-full mt-5 px-12">
         <Carousel
           opts={{
             align: "start",
@@ -77,17 +78,17 @@ export default function Home() {
             }),
           ]}
           orientation="horizontal"
-          className="mx-15">
+          className="mx-full relative">
           <CarouselContent>
             {movies.map(movie => (
               <CarouselItem key={movie.movieId}>
                 <div className="">
                   <Card className="py-0">
                     <CardContent className="flex h-130 items-center justify-center px-0 py-0 relative">
-                      <img className="object-fit w-full aspect-21/9" src={movie.backDrop} alt={movie.movieName}/>
+                      <img className="object-fit w-full aspect-21/9" src={movie.backDrop} alt={movie.movieName} />
                       <div className="absolute top-1/2 left-0 h-full w-200"></div>
-                      <Link href={"/movies/" + movie.movieId} 
-                            className="absolute bottom-0 left-0 flex w-200">
+                      <Link href={"/movies/" + movie.movieId}
+                        className="absolute bottom-0 left-0 flex w-200">
                         <div className="flex flex-col gap-2 bg-gray-600/50 p-4">
                           <h1 className="text-white text-4xl font-bold">{movie.movieName}</h1>
                           <h3 className="text-white text-lg italic font-semibold">{movie.description}</h3>
@@ -99,14 +100,12 @@ export default function Home() {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <div className="absolute top-1/2 left-3 flex items-center justify-center">
-            <CarouselPrevious className="relative left-0 translate-x-0 hover:translate-x-0 hover:bg-primary/90"/>
-          </div>
-          <div className="absolute top-1/2 right-3 flex items-center justify-center">
-            <CarouselNext className="relative right-0 translate-x-0 hover:translate-x-0 hover:bg-primary/90"/>
-          </div>
+          <CarouselPrevious className="absolute -left-10 top-1/2 -translate-y-1/2 z-10" />
+          <CarouselNext className="absolute -right-10 top-1/2 -translate-y-1/2 z-10" />
         </Carousel>
       </div>
+
+      <HomePageMovies />
     </div>
   );
 }
