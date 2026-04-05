@@ -5,7 +5,6 @@ import {useEffect, useState} from "react";
 import axios from "axios";
 import {
   Carousel,
-  CarouselApi,
   CarouselContent,
   CarouselItem,
   CarouselNext,
