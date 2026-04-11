@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 import { ArrowRight, Star } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Carousel,
   CarouselContent,
@@ -129,30 +129,6 @@ function getShowDuration(show: TVShowCard): string | undefined {
     : `${show.episodes.length} Episode${show.episodes.length > 1 ? "s" : ""}`;
 }
 
-// Helper function to render loading skeleton cards while content loads
-function LoadingSkeletonRow() {
-  return (
-    <>
-      {Array.from({ length: 6 }).map((_, index) => (
-        <CarouselItem
-          key={`skeleton-${index}`}
-          className="basis-1/3 md:basis-1/5 lg:basis-1/6 xl:basis-1/7 py-4"
-        >
-          <div className="px-2">
-            <div className="overflow-hidden rounded-lg border border-orange-300 bg-orange-100">
-              <div className="aspect-[2/3] w-full animate-pulse bg-orange-200" />
-              <div className="space-y-3 p-4">
-                <div className="h-5 w-3/4 animate-pulse rounded bg-orange-200" />
-                <div className="h-4 w-1/2 animate-pulse rounded bg-orange-200" />
-              </div>
-            </div>
-          </div>
-        </CarouselItem>
-      ))}
-    </>
-  );
-}
-
 // Reusable component for a homepage media carousel section
 function MediaCarouselSection<T>({ config }: MediaCarouselSectionProps<T>) {
   // State to hold fetched media items
@@ -167,7 +143,7 @@ function MediaCarouselSection<T>({ config }: MediaCarouselSectionProps<T>) {
   // State to hold the currently selected genre
   const [isLoading, setIsLoading] = useState(true);
 
-  // State to determine loading
+  // Async function to fetch media items based on selected genre
   async function loadItems(genre = "") {
     try {
       setIsLoading(true);
@@ -293,88 +269,97 @@ function MediaCarouselSection<T>({ config }: MediaCarouselSectionProps<T>) {
 
       {/*Media Carousel*/}
       <div className="mt-4 relative py-4 px-12">
-        <Carousel opts={{ align: "start", dragFree: true }} className="w-full relative">
+        <Carousel
+          key={`${config.type}-${selectedGenre || "all"}-${isLoading ? "loading" : "ready"}`}
+          opts={{ align: "start", dragFree: true }}
+          className="w-full relative"
+        >
           <CarouselContent className="pr-4">
-            <AnimatePresence>
-              {isLoading ? (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0.6, scale: 0.985, filter: "blur(2px)" }}
-                  animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="contents"
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, index) => (
+                <CarouselItem
+                  key={`skeleton-${index}`}
+                  className="basis-1/3 md:basis-1/5 lg:basis-1/6 xl:basis-1/7 py-4"
                 >
-                  <LoadingSkeletonRow />
-                </motion.div>
-              ) : items.length === 0 ? (
-                <CarouselItem key="empty-state" className="basis-full py-4">
                   <motion.div
-                    initial={{ opacity: 0, y: 8 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.25, ease: "easeOut" }}
-                    className="flex w-full justify-center py-12 text-center text-gray-500 text-lg font-medium"
+                    transition={{ duration: 0.2, delay: index * 0.03 }}
+                    className="px-2"
                   >
-                    Nothing matched {selectedGenre ? `"${selectedGenre}"` : "your search"}.
+                    <div className="overflow-hidden rounded-lg border border-orange-300 bg-orange-100">
+                      <div className="aspect-[2/3] w-full animate-pulse bg-orange-200" />
+                      <div className="space-y-3 p-4">
+                        <div className="h-5 w-3/4 animate-pulse rounded bg-orange-200" />
+                        <div className="h-4 w-1/2 animate-pulse rounded bg-orange-200" />
+                      </div>
+                    </div>
                   </motion.div>
                 </CarouselItem>
-              ) : (
-                items.map((item, index) => (
-                  <CarouselItem
-                    key={`${config.type}-${item.id ?? "no-id"}-${index}`}
-                    className="basis-1/3 md:basis-1/5 lg:basis-1/6 xl:basis-1/7 py-4"
+              ))
+            ) : items.length === 0 ? (
+              <CarouselItem
+                key={`empty-${selectedGenre || "all"}`}
+                className="basis-full py-4"
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="flex w-full justify-center py-12 text-center text-gray-500 text-lg font-medium"
+                >
+                  Nothing matched {selectedGenre ? `"${selectedGenre}"` : "your search"}.
+                </motion.div>
+              </CarouselItem>
+            ) : (
+              items.map((item, index) => (
+                <CarouselItem
+                  key={`${config.type}-${selectedGenre || "all"}-${item.id ?? "no-id"}-${index}`}
+                  className="basis-1/3 md:basis-1/5 lg:basis-1/6 xl:basis-1/7 py-4"
+                >
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.985 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{
+                      duration: 0.25,
+                      ease: "easeOut",
+                      delay: index * 0.03,
+                    }}
+                    className="px-2"
                   >
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.985 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.985 }}
-                      transition={{
-                        duration: 0.25,
-                        ease: "easeOut",
-                        delay: index * 0.03,
-                      }}
-                      className="px-2"
-                    >
-                      <Link href={item.href} className="block">
-                        <div className="relative transition-transform duration-200 hover:scale-[1.05] hover:z-10">
-                          <Card className="bg-orange-200 border-orange-400 border rounded-lg pt-0 h-full">
-                            <div className="w-full aspect-[2/3] overflow-hidden rounded-t-lg border-b border-orange-400">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={item.cover}
-                                alt={item.title}
-                                className="w-full h-full object-cover rounded-t-lg"
-                              />
-                            </div>
+                    <Link href={item.href} className="block select-none">
+                      <div className="relative transition-transform duration-200 hover:scale-[1.05] hover:z-10">
+                        <Card className="bg-orange-200 border-orange-400 border rounded-lg pt-0 h-full">
+                          <div className="w-full aspect-[2/3] overflow-hidden rounded-t-lg border-b border-orange-400">
+                            <img
+                              src={item.cover}
+                              alt={item.title}
+                              draggable={false}
+                              className="w-full h-full object-cover rounded-t-lg"
+                            />
+                          </div>
 
-                            <CardHeader>
-                              <CardTitle className="line-clamp-1">{item.title}</CardTitle>
+                          <CardHeader>
+                            <CardTitle className="line-clamp-1">{item.title}</CardTitle>
 
-                              <CardDescription className="flex items-center gap-3 text-gray-500 flex-wrap">
-                                {item.year !== undefined && <span>{item.year}</span>}
-                                {item.duration && <span>{item.duration}</span>}
-                                {typeof item.rating === "number" && (
-                                  <div className="flex items-center gap-1">
-                                    <Star
-                                      className="h-4 w-4"
-                                      fill="#F3B413"
-                                      color="#F3B413"
-                                    />
-                                    <span className="font-bold text-gray-500">
-                                      {item.rating}
-                                    </span>
-                                  </div>
-                                )}
-                              </CardDescription>
-                            </CardHeader>
-                          </Card>
-                        </div>
-                      </Link>
-                    </motion.div>
-                  </CarouselItem>
-                ))
-              )}
-            </AnimatePresence>
+                            <CardDescription className="flex items-center gap-3 text-gray-500 flex-wrap">
+                              {item.year !== undefined && <span>{item.year}</span>}
+                              {item.duration && <span>{item.duration}</span>}
+                              {typeof item.rating === "number" && (
+                                <div className="flex items-center gap-1">
+                                  <Star className="h-4 w-4" fill="#F3B413" color="#F3B413" />
+                                  <span className="font-bold text-gray-500">{item.rating}</span>
+                                </div>
+                              )}
+                            </CardDescription>
+                          </CardHeader>
+                        </Card>
+                      </div>
+                    </Link>
+                  </motion.div>
+                </CarouselItem>
+              ))
+            )}
           </CarouselContent>
 
           <CarouselPrevious className="absolute -left-12 top-1/2 -translate-y-1/2 z-20 bg-white" />
