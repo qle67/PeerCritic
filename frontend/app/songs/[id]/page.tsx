@@ -1,14 +1,16 @@
 "use client"
 
 import Navbar from "@/app/navbar";
-import {useParams, useRouter} from "next/navigation";
+import { useParams } from "next/navigation";
 import axios from "axios";
-import {useEffect, useState} from "react";
-import {Badge} from "@/components/ui/badge";
-import {Star} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {Card, CardAction, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
+import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import FriendReviews from "@/app/viewfriendreviews/friendReviews";
+import { useAuthStatus } from "@/app/hooks/useAuthStatus";
 
 // Define the TypeScript type for an Artist object returned by API
 type Artist = {
@@ -34,17 +36,19 @@ type Song = {
 // Export the default page component rendered at the /songs/[id] route
 export default function Page() {
   const params = useParams();         // Get URL parameters
+  // State variable to store logged in status
+  const { isLoggedIn } = useAuthStatus();
   // State variable to hold the fetched song details
   const [song, setSong] = useState<Song>();
   // State variable to hold the list of similar songs
   const [similarSongs, setSimilarSongs] = useState<Song[]>([]);
-  
+
   // Triggers both data fetching functions when the page loads
   useEffect(() => {
     fetchSong();              // Fetch song
     fetchSimilarSongs();      // Fetch similar songs
   }, []);
-  
+
   // Async function to fetch song details from the API
   async function fetchSong() {
     try {
@@ -54,13 +58,13 @@ export default function Page() {
           "Accept": 'application/json'    // Accept a JSON response
         }
       });
-      console.log(response);   
+      console.log(response);
       setSong(response.data);     // Store the response song data in state
     } catch (error) {
       console.error(error);     // Log error to the console
     }
   }
-  
+
   // Async function to fetch similar songs based on shared genres
   async function fetchSimilarSongs() {
     try {
@@ -83,7 +87,7 @@ export default function Page() {
       console.error(error);     // Log errors to the console
     }
   }
-  
+
   // Render the Song detail page UI
   return (
     // Outer container
@@ -94,12 +98,12 @@ export default function Page() {
         {/* Only show content when song data is loaded */}
         {song !== undefined && (
           <div className="mt-6 flex w-full">
-            
+
             {/* Left column for poster, genres and information of a song */}
             <div className="grow-1">
               <div className="flex flex-col items-center">
                 {/* song poster */}
-                <img src={song.cover} alt={song.songName} width="300" height="500"/>
+                <img src={song.cover} alt={song.songName} width="300" height="500" />
                 {/* genre badges */}
                 <div className="mt-2">
                   {song.genres.map((genre, index) => (
@@ -125,10 +129,13 @@ export default function Page() {
                   </div>
                 </div>
               </div>
-              
-              <div className="bg-orange-300 justify-self-center w-90 border-orange-400 border-3 rounded-lg mt-8 p-1">
-                <div className="text-xl font-bold justify-self-center mt-1">Your Friends' Ratings</div>
-              </div>
+
+              {/*Friend's Ratings*/}
+              <FriendReviews
+                mediaType="song"
+                mediaId={song.songId}
+                isLoggedIn={isLoggedIn}
+              />
             </div>
 
             {/* Center column for title, rating and action buttons of a song */}
@@ -137,7 +144,7 @@ export default function Page() {
               <h1 className="text-4xl font-bold justify-self-center">{song.songName}</h1>
               {/* Rating display */}
               <div className="mt-5 flex items-center justify-center">
-                <Star className="mr-5" fill="#F3B413" color="#F3B413" size={100}/>
+                <Star className="mr-5" fill="#F3B413" color="#F3B413" size={100} />
                 <div className="text-7xl font-bold text-blue-700">{song.songRating}</div>
               </div>
 
@@ -155,16 +162,16 @@ export default function Page() {
                 <Button className="bg-orange-400">SHARE</Button>
               </div>
               {/* listen button */}
-              
+
               <div className="mt-8 justify-self-center flex flex-col justify-center">
                 <Button variant="ghost"
-                        className="text-xl font-bold bg-orange-200 text-grey-500 p-7 rounded-t-xl rounded-b-none border-3 border-orange-300">
+                  className="text-xl font-bold bg-orange-200 text-grey-500 p-7 rounded-t-xl rounded-b-none border-3 border-orange-300">
                   Music Video
                 </Button>
                 <iframe width="560" height="315" src={song.video}
-                        title={song.songName} frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen/>
+                  title={song.songName} frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen />
 
               </div>
 
@@ -181,7 +188,7 @@ export default function Page() {
               <div className="text-lg font-bold justify-self-center mt-5">Similar Songs</div>
               {similarSongs.map(similarSong => (
                 <Card key={similarSong.songId}
-                      className="w-90 mt-1 justify-self-center bg-orange-200 border-orange-400 border-1 mt-2">
+                  className="w-90 mt-1 justify-self-center bg-orange-200 border-orange-400 border-1 mt-2">
                   <CardHeader>
 
                     {/* Song title */}
@@ -199,13 +206,13 @@ export default function Page() {
                       {/* Release year */}
                       <div className="mr-9">{similarSong.year}</div>
                       {/* Rating */}
-                      <Star className="mr-1" fill="#F3B413" color="#F3B413"/>
+                      <Star className="mr-1" fill="#F3B413" color="#F3B413" />
                       <div className="font-bold ">{similarSong.songRating}</div>
                     </CardDescription>
-                    
+
                     {/* Song poster */}
                     <CardAction>
-                      <img src={similarSong.cover} alt={similarSong.songName} width="60" height="40"/>
+                      <img src={similarSong.cover} alt={similarSong.songName} width="60" height="40" />
                     </CardAction>
                   </CardHeader>
                 </Card>
