@@ -61,17 +61,11 @@ app.include_router(ReviewsRouter.router)
 # Register Friends routes
 app.include_router(FriendsRouter.router)
 
-#Register Messages routes
+# Register Messages routes
 app.include_router(MessagesRouter.router)
 
-#Register Messages websocket router
+# Register Messages websocket router
 app.include_router(WsMessagesRouter.router)
-
-# Register Writer routes
-app.include_router(WriterRouter.router)
-
-# Register Actor routes
-app.include_router(ActorRouter.router)
 
 # Register Director routes
 app.include_router(DirectorRouter.router)
@@ -79,8 +73,14 @@ app.include_router(DirectorRouter.router)
 # Register Genre routes
 app.include_router(GenreRouter.router)
 
+# Register Writer routes
+app.include_router(WriterRouter.router)
+
+# Register Actor routes
+app.include_router(ActorRouter.router)
+
 # Register Artist routes
 app.include_router(ArtistRouter.router)
 
-#Register Users routes
+# Register Users routes
 app.include_router(UsersRouter.router)

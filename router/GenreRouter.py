@@ -5,7 +5,6 @@ from sqlalchemy.orm import joinedload
 from sqlmodel import select
 
 from model.Genre import Genre, GenreCardPublic
-from model.Movie import Movie
 from model.database import SessionDep
 
 # Create a router instance

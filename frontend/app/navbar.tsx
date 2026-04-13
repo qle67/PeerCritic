@@ -276,7 +276,7 @@ export default function Navbar() {
                       <img src={show.cover} alt={show.movieName} />
                     </ItemMedia>
                     <ItemContent>
-                      <Link href={"/shows/" + show.movieId}>
+                      <Link href={"/movies/" + show.movieId}>
                         <ItemTitle>{show.movieName}</ItemTitle>
                         <ItemDescription>{show.year}</ItemDescription>
                       </Link>
