@@ -342,9 +342,11 @@ function MediaCarouselSection<T>({ config }: MediaCarouselSectionProps<T>) {
                           <CardHeader>
                             <CardTitle className="line-clamp-1">{item.title}</CardTitle>
 
-                            <CardDescription className="flex items-center gap-3 text-gray-500 flex-wrap">
-                              {item.year !== undefined && <span>{item.year}</span>}
-                              {item.duration && <span>{item.duration}</span>}
+                            <CardDescription className="flex flex-col gap-3 text-gray-500">
+                              <div className="flex gap-3">
+                                {item.year !== undefined && <span>{item.year}</span>}
+                                {item.duration && <span>{item.duration}</span>}
+                              </div>
                               {typeof item.rating === "number" && (
                                 <div className="flex items-center gap-1">
                                   <Star className="h-4 w-4" fill="#F3B413" color="#F3B413" />
