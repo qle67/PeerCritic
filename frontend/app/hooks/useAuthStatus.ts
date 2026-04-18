@@ -1,3 +1,4 @@
+// previously used for friendReviews. Could find a use later
 "use client";
 
 import { useEffect, useState } from "react";

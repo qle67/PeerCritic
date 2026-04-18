@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import FriendReviews from "@/app/viewfriendreviews/friendReviews";
-import { useAuthStatus } from "@/app/hooks/useAuthStatus";
 
 // Define the TypeScript type for an Artist object returned by API
 type Artist = {
@@ -36,8 +35,6 @@ type Song = {
 // Export the default page component rendered at the /songs/[id] route
 export default function Page() {
   const params = useParams();         // Get URL parameters
-  // State variable to store logged in status
-  const { isLoggedIn } = useAuthStatus();
   // State variable to hold the fetched song details
   const [song, setSong] = useState<Song>();
   // State variable to hold the list of similar songs
@@ -134,7 +131,6 @@ export default function Page() {
               <FriendReviews
                 mediaType="song"
                 mediaId={song.songId}
-                isLoggedIn={isLoggedIn}
               />
             </div>
 
