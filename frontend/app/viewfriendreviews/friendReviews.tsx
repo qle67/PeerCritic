@@ -5,6 +5,7 @@ import axios from "axios";
 import { Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 // Define allowed media types for fetching friend reviews
 type MediaType = "movie" | "show" | "song";
@@ -253,9 +254,11 @@ export default function FriendReviews({
                                                 {/*User avatar or fallback initial*/}
                                                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-orange-300 bg-orange-200">
                                                     {r.avatar ? (
-                                                        <img
+                                                        <Image
                                                             src={r.avatar}
                                                             alt={displayName}
+                                                            width={48}
+                                                            height={48}
                                                             className="h-full w-full object-cover"
                                                         />
                                                     ) : (
