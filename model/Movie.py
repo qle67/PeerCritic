@@ -39,9 +39,9 @@ class Movie(BaseTable, table=True):
     directors: list["Director"] = Relationship(back_populates="movies", link_model=MovieDirector)
     # Create many-to-many relationship between Movie and Genre
     genres: list["Genre"] = Relationship(back_populates="movies", link_model=MovieGenre)
-    # Create many-to-many relationship between Movie and Episode
+    # Create one-to-many relationship between Movie and Episode
     episodes: list["Episode"] = Relationship(back_populates="movie")
-    # Create many-to-many relationship between Movie and Review
+    # Create one-to-many relationship between Movie and Review
     reviews: list["Review"] = Relationship(back_populates="movie")
     
 # Create Data Transfer Object (DTO) for detailed movie view
@@ -60,6 +60,7 @@ class MoviePublic(BaseTable):
     directors: list[str]
     genres: list[str]
     reviews: list[str]
+   
     
 # Create Data Transfer Object (DTO) for movie card view
 class MovieCardPublic(BaseTable): 

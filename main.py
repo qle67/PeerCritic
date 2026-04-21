@@ -17,7 +17,7 @@ from router import (
     FriendsRouter,
     UsersRouter,
     MessagesRouter,
-    WsMessagesRouter,
+    WsMessagesRouter, ThreadRouter,
 )
 from router.Admin import admin
 
@@ -84,3 +84,6 @@ app.include_router(ArtistRouter.router)
 
 # Register Users routes
 app.include_router(UsersRouter.router)
+
+# Register Thread routes
+app.include_router(ThreadRouter.router)

@@ -16,9 +16,11 @@ from model.Director import Director
 from model.Episode import Episode
 from model.Genre import Genre
 from model.Movie import Movie
+from model.Post import Post
 from model.Profile import Profile
 from model.Review import Review
 from model.Song import Song
+from model.Thread import Thread
 from model.User import User
 from model.Writer import Writer
 from model.database import engine
@@ -133,5 +135,10 @@ admin.add_view(ModelView(Episode))
 admin.add_view(ModelView(Movie))
 # Register the Review model in the admin dashboard
 admin.add_view(ModelView(Review))
+# Register the Thread model in the admin dashboard
+admin.add_view(ModelView(Thread))
+# Register the Post model in the admin dashboard
+admin.add_view(ModelView(Post))
+
 
 
