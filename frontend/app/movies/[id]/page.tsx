@@ -1,14 +1,16 @@
 "use client"
 
 import Navbar from "@/app/navbar";
-import {useParams, useRouter} from "next/navigation";
+import { useParams } from "next/navigation";
 import axios from "axios";
-import {useEffect, useState} from "react";
-import {Badge} from "@/components/ui/badge";
-import {Star} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle} from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import FriendReviews from "@/app/viewfriendreviews/friendReviews";
+
 
 /* Define TypeScript type for an Episode object returned by API */
 type Episode = {
@@ -41,16 +43,16 @@ type Movie = {
 export default function Page() {
   const params = useParams();         // Get URL parameters
   // State variable to hold the fetched movie details
-  const [movie, setMovie] = useState<Movie>(); 
+  const [movie, setMovie] = useState<Movie>();
   // State variable to hold the fetched similar movies
   const [similarMovies, setSimilarMovies] = useState<Movie[]>([]);
-  
+
   // Triggers both data fetching function on page load
   useEffect(() => {
     fetchMovie();               // Fetch movie
     fetchSimilarMovies();       // Fetch similar movies
   }, []);
-  
+
   // Async function to fetch detailed movie from API
   async function fetchMovie() {
     try {
@@ -66,7 +68,7 @@ export default function Page() {
       console.error(error);         // Log network or server error to the console
     }
   }
-  
+
   // Async function to fetch similar movies based on share genres
   async function fetchSimilarMovies() {
     try {
@@ -89,7 +91,7 @@ export default function Page() {
       console.error(error);   // Log error to the console
     }
   }
-  
+
   // Render the movie detail page UI
   return (
     // Outer container
@@ -100,12 +102,12 @@ export default function Page() {
         {/* Only show content when movie data is loaded */}
         {movie !== undefined && (
           <div className="mt-6 flex w-full gap-8 px-8">
-            
+
             {/* Left column for poster, genres and information of a movie*/}
             <div className="grow-1">
               <div className="flex flex-col items-center">
                 {/* Movie Poster */}
-                <img src={movie.cover} alt={movie.movieName} width="300" height="400"/>
+                <img src={movie.cover} alt={movie.movieName} width="300" height="400" />
                 {/* genre badges */}
                 <div className="mt-2">
                   {movie.genres.map((genre, index) => (
@@ -157,7 +159,7 @@ export default function Page() {
               {movie.episodes.length > 0 && (
                 <div className="flex flex-col items-center">
                   <div className="text-lg font-bold mt-5">Episodes</div>
-                  
+
                   {/* Map and create a card for each episode */}
                   {movie.episodes.map(episode => (
                     <Card key={episode.episodeId} className="w-90 mt-1 bg-orange-200 border-orange-400 border-1 mt-2">
@@ -171,10 +173,11 @@ export default function Page() {
                 </div>
               )}
 
-              {/* Friends' Ratings */}
-              <div className="bg-orange-300 justify-self-center w-90 border-orange-400 border-3 rounded-lg mt-8 p-1">
-                <div className="text-xl font-bold justify-self-center mt-1">Your Friends' Ratings</div>
-              </div>
+              {/*Friend's Ratings*/}
+              <FriendReviews
+                mediaType={movie.episodes.length > 0 ? "show" : "movie"}
+                mediaId={movie.movieId}
+              />
             </div>
 
             {/* Center column for title, rating, buttons and review list*/}
@@ -184,7 +187,7 @@ export default function Page() {
 
               {/* Rating display */}
               <div className="mt-5 flex items-center justify-center">
-                <Star className="mr-5" fill="#F3B413" color="#F3B413" size={100}/>
+                <Star className="mr-5" fill="#F3B413" color="#F3B413" size={100} />
                 <div className="text-7xl font-bold text-blue-700">{movie.movieRating}</div>
               </div>
 
@@ -207,9 +210,9 @@ export default function Page() {
                   Official Trailer
                 </Button>
                 <iframe width="560" height="315" src={movie.video}
-                        title={movie.movieName} frameBorder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen />
+                  title={movie.movieName} frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen />
 
               </div>
 
@@ -238,11 +241,11 @@ export default function Page() {
                     <CardDescription className="flex">
                       <div className="mr-9">{similarMovie.year}</div>
                       <div className="mr-9">{similarMovie.length}</div>
-                      <Star className="mr-1" fill="#F3B413" color="#F3B413"/>
+                      <Star className="mr-1" fill="#F3B413" color="#F3B413" />
                       <div className="font-bold ">{similarMovie.movieRating}</div>
                     </CardDescription>
                     <CardAction>
-                    <img src={similarMovie.cover} alt={similarMovie.movieName} width="60" height="40"/>
+                      <img src={similarMovie.cover} alt={similarMovie.movieName} width="60" height="40" />
                     </CardAction>
                   </CardHeader>
                 </Card>

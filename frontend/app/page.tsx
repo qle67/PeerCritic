@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import {
   Carousel,
-  //CarouselApi,
   CarouselContent,
   CarouselItem,
   CarouselNext,
@@ -85,8 +84,8 @@ export default function Home() {
   useEffect(() => {
     searchMovies();
   }, []);
-
-
+  
+  
   return (
     <div className="mx-auto">
       <Navbar />
