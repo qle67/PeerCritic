@@ -38,7 +38,7 @@ const menu = [
   },
   {
     title: "Discussion",
-    url: "/discussion"
+    url: "/discussions"
   }
 ]
 

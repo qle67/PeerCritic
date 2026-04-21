@@ -5,7 +5,7 @@ from fastapi_pagination import Page, set_page, set_params, Params
 from fastapi_pagination.ext.sqlmodel import paginate
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
-from sqlmodel import select, and_
+from sqlmodel import select
 
 from model.Actor import Actor
 from model.Director import Director
@@ -23,7 +23,7 @@ router = APIRouter()
 class MoviePublicWithEpisodes(MoviePublic):
     episodes: list[Episode]
 
-# Define routes for getting a movie details
+# Define a GET route for getting a movie details
 @router.get("/movies/{movie_id}", response_model=MoviePublicWithEpisodes)
 async def read_movie(
         movie_id: Annotated[int, Path(title = "id of movie")],  # Path parameter: the ID of the movie to retrieve
