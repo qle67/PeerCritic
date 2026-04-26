@@ -142,6 +142,7 @@ export default function Page() {
   // State to hold the selected genre
   const [selectedGenre, setSelectedGenre] = useState<string>("");
 
+  // State to hold loading state
   const [loadingMovies, setLoadingMovies] = useState(false);
 
   // Reset search options

@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import FriendReviews from "@/app/viewfriendreviews/friendReviews";
+import MediaReviews from "@/app/viewreviews/mediaReviews";
+import ReviewForm from "@/app/reviewform/reviewForm";
 
 // Define the TypeScript type for an Artist object returned by API
 type Artist = {
@@ -40,50 +42,51 @@ export default function Page() {
   // State variable to hold the list of similar songs
   const [similarSongs, setSimilarSongs] = useState<Song[]>([]);
 
-  // Triggers both data fetching functions when the page loads
+  const songId = Array.isArray(params.id) ? params.id[0] : params.id;
+
+  const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
+
   useEffect(() => {
-    fetchSong();              // Fetch song
-    fetchSimilarSongs();      // Fetch similar songs
-  }, []);
+    if (!songId) return;
 
-  // Async function to fetch song details from the API
-  async function fetchSong() {
-    try {
-      // Send a GET request to the song detail endpoint using the id from URL
-      const response = await axios.get("http://localhost:8000/songs/" + params.id, {
-        headers: {
-          "Accept": 'application/json'    // Accept a JSON response
-        }
-      });
-      console.log(response);
-      setSong(response.data);     // Store the response song data in state
-    } catch (error) {
-      console.error(error);     // Log error to the console
-    }
-  }
+    let isCancelled = false;
 
-  // Async function to fetch similar songs based on shared genres
-  async function fetchSimilarSongs() {
-    try {
-      // Send a GET request to the similar songs endpoint using the id from URL
-      const response = await axios.get("http://localhost:8000/songs/" + params.id + "/similar", {
-        headers: {
-          "Accept": 'application/json'    // Accept a JSON response
-        },
-        params: {
-          page: 1,        // Request the first page of results
-          size: 20,       // Limit results to 20 similar songs
+    async function loadSongPage() {
+      try {
+        const [songResponse, similarResponse] = await Promise.all([
+          axios.get(`http://localhost:8000/songs/${songId}`, {
+            headers: {
+              Accept: "application/json",
+            },
+          }),
+          axios.get(`http://localhost:8000/songs/${songId}/similar`, {
+            headers: {
+              Accept: "application/json",
+            },
+            params: {
+              page: 1,
+              size: 20,
+            },
+          }),
+        ]);
+
+        if (isCancelled) return;
+
+        setSong(songResponse.data);
+        setSimilarSongs(similarResponse?.data?.items ?? []);
+      } catch (error) {
+        if (!isCancelled) {
+          console.error(error);
         }
-      });
-      console.log(response);
-      if (response && response.data) {
-        // Extract the item array from the paginated response and store it in state
-        setSimilarSongs(response.data.items);
       }
-    } catch (error) {
-      console.error(error);     // Log errors to the console
     }
-  }
+
+    void loadSongPage();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [songId]);
 
   // Render the Song detail page UI
   return (
@@ -93,128 +96,163 @@ export default function Page() {
       <Navbar />
       <div>
         {/* Only show content when song data is loaded */}
-        {song !== undefined && (
-          <div className="mt-6 flex w-full">
-
-            {/* Left column for poster, genres and information of a song */}
-            <div className="grow-1">
-              <div className="flex flex-col items-center">
-                {/* song poster */}
-                <img src={song.cover} alt={song.songName} width="300" height="500" />
-                {/* genre badges */}
-                <div className="mt-2">
-                  {song.genres.map((genre, index) => (
-                    <Badge key={index} className="mr-1 rounded-sm">{genre}</Badge>
-                  ))}
-                </div>
-
-                {/* Song information card */}
-                <div className="bg-orange-300 w-90 border-orange-400 border-3 rounded-lg mt-2 p-3">
-                  <div>
-                    <strong>Artist: </strong>
-                    {song.artists.map((artist, index) => (
-                      <span key={index}>{typeof artist === "string" ? artist : artist.artistName}</span>
+                {song !== undefined && (
+          <>
+            <div className="mt-6 flex w-full">
+              {/* Left column for poster, genres and information of a song */}
+              <div className="grow-1">
+                <div className="flex flex-col items-center">
+                  {/* song poster */}
+                  <img src={song.cover} alt={song.songName} width="300" height="500" />
+                  {/* genre badges */}
+                  <div className="mt-2">
+                    {song.genres.map((genre, index) => (
+                      <Badge key={index} className="mr-1 rounded-sm">{genre}</Badge>
                     ))}
                   </div>
-                  <div>
-                    <strong>Release Year: </strong>
-                    {song.year}
+
+                  {/* Song information card */}
+                  <div className="bg-orange-300 w-90 border-orange-400 border-3 rounded-lg mt-2 p-3">
+                    <div>
+                      <strong>Artist: </strong>
+                      {song.artists.map((artist, index) => (
+                        <span key={index}>{typeof artist === "string" ? artist : artist.artistName}</span>
+                      ))}
+                    </div>
+                    <div>
+                      <strong>Release Year: </strong>
+                      {song.year}
+                    </div>
+                    <div>
+                      <strong>Runtime: </strong>
+                      {song.length}
+                    </div>
                   </div>
-                  <div>
-                    <strong>Runtime: </strong>
-                    {song.length}
+                </div>
+
+                {/*Friend's Ratings*/}
+                <FriendReviews
+                  mediaType="song"
+                  mediaId={song.songId}
+                />
+              </div>
+
+              {/* Center column for title, rating and action buttons of a song */}
+              <div className="grow-1">
+                {/* Song title */}
+                <h1 className="text-4xl font-bold justify-self-center">{song.songName}</h1>
+                {/* Rating display */}
+                <div className="mt-5 flex items-center justify-center">
+                  <Star className="mr-5" fill="#F3B413" color="#F3B413" size={100} />
+                  <div className="text-7xl font-bold text-blue-700">{song.songRating}</div>
+                </div>
+
+                {/* User rating */}
+                <div className="flex font-bold text-xl justify-self-center border-orange-300 border-3 p-2 rounded-lg mt-8">
+                  You Rated:&nbsp;
+                  <div className="font-bold text-blue-700">10</div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="mt-8 flex justify-center gap-5">
+                  <Button className="bg-orange-400" onClick={() => setIsReviewFormOpen(true)}>
+                    REVIEW
+                  </Button>
+                  <Button className="bg-orange-400">SHARE</Button>
+                </div>
+
+                {/* listen button */}
+                <div className="mt-8 justify-self-center flex flex-col justify-center">
+                  <Button
+                    variant="ghost"
+                    className="text-xl font-bold bg-orange-200 text-grey-500 p-7 rounded-t-xl rounded-b-none border-3 border-orange-300"
+                  >
+                    Music Video
+                  </Button>
+                  <iframe
+                    width="560"
+                    height="315"
+                    src={song.video}
+                    title={song.songName}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+
+                {/* Reviews section */}
+                <div className="mt-6 flex justify-center">
+                  <div className="w-full max-w-xl">
+                    <MediaReviews
+                      mediaType="song"
+                      mediaId={song.songId}
+                    />
                   </div>
                 </div>
               </div>
 
-              {/*Friend's Ratings*/}
-              <FriendReviews
-                mediaType="song"
-                mediaId={song.songId}
-              />
+              {/* Right column for similar songs */}
+              <div className="grow-1 overflow-x-clip">
+                <div className="text-lg font-bold justify-self-center mt-5">Similar Songs</div>
+
+                <div className="mt-2 space-y-2">
+                  {similarSongs.map((similarSong) => (
+                    <div
+                      key={similarSong.songId}
+                      className="relative origin-right transition-transform duration-200 hover:-translate-x-2 hover:z-10"
+                    >
+                      <Link href={"/songs/" + similarSong.songId} className="block">
+                        <Card className="w-90 justify-self-center border border-orange-400 bg-orange-200 shadow-sm transition-all duration-200 hover:border-orange-500 hover:shadow-lg">
+                          <CardHeader>
+                            <CardTitle className="line-clamp-1 transition-colors hover:text-orange-700">
+                              {similarSong.songName}
+                            </CardTitle>
+
+                            <CardDescription className="flex items-center gap-3 flex-wrap">
+                              <div className="max-w-[140px] truncate">
+                                {similarSong.artists.map((artist, index) => (
+                                  <span key={index}>
+                                    {index > 0 ? ", " : ""}
+                                    {typeof artist === "string" ? artist : artist.artistName}
+                                  </span>
+                                ))}
+                              </div>
+
+                              <div>{similarSong.year}</div>
+
+                              <div className="flex items-center gap-1">
+                                <Star className="h-4 w-4" fill="#F3B413" color="#F3B413" />
+                                <div className="font-bold">{similarSong.songRating}</div>
+                              </div>
+                            </CardDescription>
+
+                            <CardAction>
+                              <img
+                                src={similarSong.cover}
+                                alt={similarSong.songName}
+                                width="60"
+                                height="40"
+                                className="rounded-md border border-orange-300 object-cover"
+                              />
+                            </CardAction>
+                          </CardHeader>
+                        </Card>
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Center column for title, rating and action buttons of a song */}
-            <div className="grow-1">
-              {/* Song title */}
-              <h1 className="text-4xl font-bold justify-self-center">{song.songName}</h1>
-              {/* Rating display */}
-              <div className="mt-5 flex items-center justify-center">
-                <Star className="mr-5" fill="#F3B413" color="#F3B413" size={100} />
-                <div className="text-7xl font-bold text-blue-700">{song.songRating}</div>
-              </div>
-
-              {/* User rating */}
-              <div
-                className="flex font-bold text-xl justify-self-center border-orange-300 border-3 p-2 rounded-lg mt-8">
-                You Rated:&nbsp;
-                <div className=" font-bold text-blue-700">10</div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="mt-8 flex justify-center gap-5">
-                <Button className="bg-orange-400">RATE</Button>
-                <Button className="bg-orange-400">REVIEW</Button>
-                <Button className="bg-orange-400">SHARE</Button>
-              </div>
-              {/* listen button */}
-
-              <div className="mt-8 justify-self-center flex flex-col justify-center">
-                <Button variant="ghost"
-                  className="text-xl font-bold bg-orange-200 text-grey-500 p-7 rounded-t-xl rounded-b-none border-3 border-orange-300">
-                  Music Video
-                </Button>
-                <iframe width="560" height="315" src={song.video}
-                  title={song.songName} frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen />
-
-              </div>
-
-              {/* Reviews section */}
-              <div className="text-xl font-bold justify-self-center mt-5">Reviews</div>
-
-              <div>
-
-              </div>
-            </div>
-
-            {/* Right column for similar songs */}
-            <div className="grow-1">
-              <div className="text-lg font-bold justify-self-center mt-5">Similar Songs</div>
-              {similarSongs.map(similarSong => (
-                <Card key={similarSong.songId}
-                  className="w-90 mt-1 justify-self-center bg-orange-200 border-orange-400 border-1 mt-2">
-                  <CardHeader>
-
-                    {/* Song title */}
-                    <CardTitle>
-                      <Link href={"/songs/" + similarSong.songId}>{similarSong.songName}</Link>
-                    </CardTitle>
-
-                    {/* Song information */}
-                    <CardDescription className="flex">
-                      <div className="mr-9">
-                        {similarSong.artists.map((artist, index) => (
-                          <span key={index}>{typeof artist === "string" ? artist : artist.artistName}</span>
-                        ))}
-                      </div>
-                      {/* Release year */}
-                      <div className="mr-9">{similarSong.year}</div>
-                      {/* Rating */}
-                      <Star className="mr-1" fill="#F3B413" color="#F3B413" />
-                      <div className="font-bold ">{similarSong.songRating}</div>
-                    </CardDescription>
-
-                    {/* Song poster */}
-                    <CardAction>
-                      <img src={similarSong.cover} alt={similarSong.songName} width="60" height="40" />
-                    </CardAction>
-                  </CardHeader>
-                </Card>
-              ))}
-            </div>
-          </div>
+            <ReviewForm
+              mediaType="song"
+              mediaId={song.songId}
+              mediaTitle={song.songName}
+              open={isReviewFormOpen}
+              onClose={() => setIsReviewFormOpen(false)}
+              onSuccess={() => window.location.reload()}
+            />
+          </>
         )}
       </div>
     </div>
