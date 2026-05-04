@@ -1,7 +1,7 @@
 "use client"
 
 import Navbar from "@/app/navbar";
-import { useParams } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +44,10 @@ type Movie = {
 export default function Page() {
   // Get route parameters from the URL
   const params = useParams();
+
+  const router = useRouter();
+
+  const pathname = usePathname();
 
   // State variable to hold fetched movie details
   const [movie, setMovie] = useState<Movie>();
@@ -100,6 +104,17 @@ export default function Page() {
       isCancelled = true;
     };
   }, [movieId]);
+
+  function handleReviewClick() {
+  const token = localStorage.getItem("accessToken");
+
+  if (!token) {
+    router.push(`/login?next=${encodeURIComponent(pathname)}`);
+    return;
+  }
+
+  setIsReviewFormOpen(true);
+}
 
   // Render movie detail page UI
   return (
@@ -205,9 +220,9 @@ export default function Page() {
 
                 {/* Action buttons for reviewing and sharing */}
                 <div className="mt-8 flex justify-center gap-5">
-                  <Button className="bg-orange-400" onClick={() => setIsReviewFormOpen(true)}>
-                    REVIEW
-                  </Button>
+                  <Button className="bg-orange-400" onClick={handleReviewClick}>
+  REVIEW
+</Button>
                   <Button className="bg-orange-400">SHARE</Button>
                 </div>
 

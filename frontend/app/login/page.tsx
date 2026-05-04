@@ -6,7 +6,8 @@ import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {useState} from "react";
 import axios from 'axios';
-import {useRouter} from 'next/navigation';
+import {useRouter, useSearchParams} from 'next/navigation';
+import Link from "next/link";
 
 // Export the default page component
 export default function Page() {
@@ -17,6 +18,13 @@ export default function Page() {
 
   // Destructure the push function from useRouter to allow navigating to other pages
   const { push } = useRouter();
+  const searchParams = useSearchParams();
+
+  const rawNext = searchParams.get("next");
+  const next =
+    rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//")
+      ? rawNext
+      : "/";
   
   // The login function runs when the login button is clicked
   async function login(e: React.MouseEvent<HTMLButtonElement>) {
@@ -33,7 +41,7 @@ export default function Page() {
       // Store the access token in localStorage
       localStorage.setItem("accessToken", response.data.access_token);
       // Navigate the user to the home page when successful login
-      push('/');
+      push(next);
     } catch (error) {
       console.error(error);
     }
@@ -87,11 +95,18 @@ export default function Page() {
                 {/* Action field contains the submit and cancel buttons and signup link*/}
                 <Field>
                   <Button className="bg-orange-400 hover:bg-orange-800" type="button" onClick={login}>Login</Button>
-                  <Button className="bg-transparent border-orange-400" variant="outline" type="button">
-                    <a href="/">Cancel</a>
-                  </Button>
+                  <Button
+  className="bg-transparent border-orange-400"
+  variant="outline"
+  type="button"
+  onClick={() => push(next)}
+>
+  Cancel
+</Button>
                   <FieldDescription className="text-center text-orange-400">
-                    Don&apos;t have an account? <a className="font-bold" href="/signup">Sign up</a>
+                    Don&apos;t have an account? <Link href={`/signup?next=${encodeURIComponent(next)}`} className="font-bold">
+  Sign up
+</Link>
                   </FieldDescription>
                 </Field>
               </FieldGroup>

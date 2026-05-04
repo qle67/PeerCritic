@@ -320,7 +320,7 @@ export default function Page() {
   }, []);
 
   return (
-    <div className="mx-auto">
+    <div className="mx-auto overflow-x-hidden">
       <Navbar />
       <motion.div
         initial={{ opacity: 0, y: 8 }}

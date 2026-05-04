@@ -18,6 +18,7 @@ import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle} from "@/components/ui/item";
 import Link from "next/link";
 import { MessageCircle } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
 
 const menu = [
   {
@@ -101,6 +102,12 @@ export default function Navbar() {
   
   // State to hold the user
   const [user, setUser] = useState<User | null>(null);
+
+  // States to preserve the user's previous page
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentUrl =
+  pathname + (searchParams.toString() ? `?${searchParams.toString()}` : "");
 
   useEffect(() => {
     fetchUser();
@@ -343,10 +350,14 @@ export default function Navbar() {
             : (
               <div className="flex gap-2">
                 <Button className="bg-orange-400 text-white" asChild variant="outline" size="sm">
-                  <a href="/login">LOGIN</a>
+                  <Link href={`/login?next=${encodeURIComponent(currentUrl)}`}>
+  LOGIN
+</Link>
                 </Button>
                 <Button className="bg-orange-800 text-white" asChild size="sm">
-                  <a href="/signup">SIGNUP</a>
+                  <Link href={`/signup?next=${encodeURIComponent(currentUrl)}`}>
+  SIGNUP
+</Link>
                 </Button>
               </div>
             )}
@@ -398,10 +409,14 @@ export default function Navbar() {
                     : (
                       <div className="flex flex-col gap-3">
                         <Button asChild variant="outline">
-                          <a href="/login">LOGIN</a>
+                          <Link href={`/login?next=${encodeURIComponent(currentUrl)}`}>
+  LOGIN
+</Link>
                         </Button>
                         <Button asChild>
-                          <a href="/signup">SIGNUP</a>
+                          <Link href={`/signup?next=${encodeURIComponent(currentUrl)}`}>
+  SIGNUP
+</Link>
                         </Button>
                       </div>
                     )

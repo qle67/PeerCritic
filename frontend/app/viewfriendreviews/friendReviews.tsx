@@ -308,7 +308,7 @@ export default function FriendReviews({
                                 const isExpanded = !!expandedReviews[r.reviewId];
 
                                 // Check whether the review is long enough to need truncation
-                                const isLongReview = reviewText.length > 180;
+                                const isLongReview = reviewText.length > 250;
 
                                 return (
                                     <motion.div
@@ -321,14 +321,7 @@ export default function FriendReviews({
                                             className={`border-orange-300 bg-orange-100 shadow-sm transition-all duration-200 ${isLongReview ? "hover:border-orange-400 hover:shadow-md" : ""
                                                 }`}
                                         >
-                                            <button
-                                                type="button"
-                                                onClick={() => isLongReview && toggleReview(r.reviewId)}
-                                                aria-expanded={isLongReview ? isExpanded : undefined}
-                                                aria-label={isLongReview ? `${isExpanded ? "Collapse" : "Expand"} review by ${displayName}` : undefined}
-                                                className={`block w-full bg-transparent text-left ${isLongReview ? "cursor-pointer" : "cursor-default"
-                                                    }`}
-                                            >
+                                            <div className="block w-full bg-transparent text-left">
                                                 <CardContent className="p-3">
                                                     <div className="flex items-start gap-2.5">
                                                         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-orange-300 bg-orange-200">
@@ -377,15 +370,20 @@ export default function FriendReviews({
                                                                 </p>
 
                                                                 {isLongReview && (
-                                                                    <div className="mt-1.5 text-sm font-medium text-orange-700">
-                                                                        {isExpanded ? "Show less" : "Read more"}
-                                                                    </div>
-                                                                )}
+  <button
+    type="button"
+    onClick={() => toggleReview(r.reviewId)}
+    aria-expanded={isExpanded}
+    className="mt-1.5 text-sm font-medium text-orange-700 hover:underline"
+  >
+    {isExpanded ? "Show less" : "Read more"}
+  </button>
+)}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </CardContent>
-                                            </button>
+                                            </div>
                                         </Card>
                                     </motion.div>
                                 );

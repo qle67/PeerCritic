@@ -1,7 +1,7 @@
 "use client"
 
 import Navbar from "@/app/navbar";
-import { useParams } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -37,8 +37,14 @@ type Song = {
 // Export the default page component rendered at the /songs/[id] route
 export default function Page() {
   const params = useParams();         // Get URL parameters
+
+  const router = useRouter();
+
+  const pathname = usePathname();
+
   // State variable to hold the fetched song details
   const [song, setSong] = useState<Song>();
+
   // State variable to hold the list of similar songs
   const [similarSongs, setSimilarSongs] = useState<Song[]>([]);
 
@@ -88,6 +94,17 @@ export default function Page() {
     };
   }, [songId]);
 
+  function handleReviewClick() {
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      router.push(`/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
+    setIsReviewFormOpen(true);
+  }
+
   // Render the Song detail page UI
   return (
     // Outer container
@@ -96,14 +113,14 @@ export default function Page() {
       <Navbar />
       <div>
         {/* Only show content when song data is loaded */}
-                {song !== undefined && (
+        {song !== undefined && (
           <>
             <div className="mt-6 flex w-full">
               {/* Left column for poster, genres and information of a song */}
               <div className="grow-1">
                 <div className="flex flex-col items-center">
                   {/* song poster */}
-                  <img src={song.cover} alt={song.songName} width="300" height="500" />
+                  <img src={song.cover} alt={song.songName} width={300} height={500} className="rounded-md object-cover" />
                   {/* genre badges */}
                   <div className="mt-2">
                     {song.genres.map((genre, index) => (
@@ -155,7 +172,7 @@ export default function Page() {
 
                 {/* Action buttons */}
                 <div className="mt-8 flex justify-center gap-5">
-                  <Button className="bg-orange-400" onClick={() => setIsReviewFormOpen(true)}>
+                  <Button className="bg-orange-400" onClick={handleReviewClick}>
                     REVIEW
                   </Button>
                   <Button className="bg-orange-400">SHARE</Button>

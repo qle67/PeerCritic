@@ -24,7 +24,7 @@ class MyReviewOut(BaseModel):
     review: Optional[str]
     reviewRating: float
     reviewRatingCount: Optional[int]
-    kind: Literal["movie", "song"]
+    kind: Literal["movie", "song", "tv"]
     title: str
     cover: Optional[str] = None
     movieId: Optional[int] = None
@@ -115,7 +115,10 @@ async def get_my_reviews(
     stmt = (
         select(Review)
         .where(Review.user_id == current_user.user_id)
-        .options(selectinload(Review.movie), selectinload(Review.song))
+        .options(
+            selectinload(Review.movie).selectinload(Movie.episodes),
+            selectinload(Review.song),
+        )
         .order_by(Review.review_id.desc())
     )
 
@@ -130,7 +133,7 @@ async def get_my_reviews(
                     review=r.review,
                     reviewRating=r.review_rating,
                     reviewRatingCount=r.review_rating_count,
-                    kind="movie",
+                    kind="tv" if r.movie.episodes else "movie",
                     title=r.movie.movie_name,
                     cover=r.movie.cover,
                     movieId=r.movie_id,
@@ -497,3 +500,24 @@ async def create_or_update_song_review(
         movieId=None,
         songId=new_review.song_id,
     )
+
+@router.delete("/reviews/{review_id}")
+async def delete_my_review(
+    review_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: SessionDep,
+):
+    review = session.exec(
+        select(Review).where(
+            Review.review_id == review_id,
+            Review.user_id == current_user.user_id,
+        )
+    ).first()
+
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    session.delete(review)
+    session.commit()
+
+    return {"message": "Review deleted"}

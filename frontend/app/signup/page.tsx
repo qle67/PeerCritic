@@ -7,7 +7,8 @@ import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {useEffect, useRef, useState} from "react";
 import axios from 'axios';
-import {useRouter} from 'next/navigation';
+import {useRouter, useSearchParams} from 'next/navigation';
+import Link from "next/link";
 
 // Default export - the main component rendered at the /signup route
 export default function Page() {
@@ -24,6 +25,14 @@ export default function Page() {
   
   // Destructure push from the Next.js router to automatically navigate to  a new page
   const { push } = useRouter();
+
+  const searchParams = useSearchParams();
+
+  const rawNext = searchParams.get("next");
+  const next =
+    rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//")
+      ? rawNext
+      : "/";
 
   // Signup function runs when the Create Account button is clicked
   async function signup(e: React.MouseEvent<HTMLButtonElement>) {
@@ -48,7 +57,7 @@ export default function Page() {
       // Save the access token returned by the server into localStorage.
       localStorage.setItem("accessToken", response.data.access_token);
       // Navigate the user to the home page after successful signup
-      push('/');
+      push(next);
     } catch (error) {
       console.error(error);
     }
@@ -155,11 +164,22 @@ export default function Page() {
               <FieldGroup>
                 <Field>
                   <Button className="bg-orange-400 hover:bg-orange-800" type="button" onClick={e => signup(e)}>Create Account</Button>
-                  <Button className="bg-transparent border-orange-400" variant="outline" type="button">
-                    <a href="/">Cancel</a>
+                  <Button
+                    className="bg-transparent border-orange-400"
+                    variant="outline"
+                    type="button"
+                    onClick={() => push(next)}
+                  >
+                    Cancel
                   </Button>
                   <FieldDescription className="px-6 text-center text-orange-400">
-                    Already have an account? <a className="font-bold" href="/login">Sign in</a>
+                    Already have an account?{" "}
+                    <Link
+                      className="font-bold"
+                      href={`/login?next=${encodeURIComponent(next)}`}
+                    >
+                      Sign in
+                    </Link>
                   </FieldDescription>
                 </Field>
               </FieldGroup>

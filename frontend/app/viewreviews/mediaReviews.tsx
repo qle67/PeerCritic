@@ -147,17 +147,17 @@ export default function MediaReviews({
         return next;
     }, [reviews, sort]);
 
-return (
-    <div className="mt-3 w-full max-w-xl self-center">
-        {/* Reviews section header */}
-        <div className="rounded-lg border-2 border-orange-200 bg-orange-50 px-4 py-2 text-center shadow-sm">
-            <div className="text-xl font-bold text-gray-900">
-                All Reviews
+    return (
+        <div className="mt-3 w-full max-w-xl self-center">
+            {/* Reviews section header */}
+            <div className="rounded-lg border-2 border-orange-200 bg-orange-50 px-4 py-2 text-center shadow-sm">
+                <div className="text-xl font-bold text-gray-900">
+                    All Reviews
+                </div>
             </div>
-        </div>
 
-        <div className="mt-3">
-            {loading ? (
+            <div className="mt-3">
+                {loading ? (
                     // Loading skeleton cards
                     <div className="space-y-3">
                         {Array.from({ length: 3 }).map((_, index) => (
@@ -269,7 +269,7 @@ return (
                                 const isExpanded = !!expandedReviews[r.reviewId];
 
                                 // Check if review is long enough to support expand/collapse
-                                const isLongReview = reviewText.length > 180;
+                                const isLongReview = reviewText.length > 250;
 
                                 return (
                                     <motion.div
@@ -282,14 +282,7 @@ return (
                                             className={`border-orange-200 bg-orange-50 shadow-sm transition-all duration-200 ${isLongReview ? "hover:border-orange-300 hover:shadow-md" : ""
                                                 }`}
                                         >
-                                            <button
-                                                type="button"
-                                                onClick={() => isLongReview && toggleReview(r.reviewId)}
-                                                aria-expanded={isLongReview ? isExpanded : undefined}
-                                                aria-label={isLongReview ? `${isExpanded ? "Collapse" : "Expand"} review by ${displayName}` : undefined}
-                                                className={`block w-full bg-transparent text-left ${isLongReview ? "cursor-pointer" : "cursor-default"
-                                                    }`}
-                                            >
+                                            <div className="block w-full bg-transparent text-left">
                                                 <CardContent className="p-3">
                                                     <div className="flex items-start gap-2.5">
                                                         {/* User avatar or fallback initial */}
@@ -341,15 +334,20 @@ return (
 
                                                                 {/* Expand or collapse label for long reviews */}
                                                                 {isLongReview && (
-                                                                    <div className="mt-1.5 text-sm font-medium text-orange-700">
-                                                                        {isExpanded ? "Show less" : "Read more"}
-                                                                    </div>
-                                                                )}
+  <button
+    type="button"
+    onClick={() => toggleReview(r.reviewId)}
+    aria-expanded={isExpanded}
+    className="mt-1.5 text-sm font-medium text-orange-700 hover:underline"
+  >
+    {isExpanded ? "Show less" : "Read more"}
+  </button>
+)}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </CardContent>
-                                            </button>
+                                            </div>
                                         </Card>
                                     </motion.div>
                                 );
