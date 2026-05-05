@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { MoreVertical, Share2, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import type { ReviewsTab } from "./types";
+import type { ReviewsSort, ReviewsTab } from "./types";
 import { useReviews } from "./useReviews";
 import { Card } from "@/components/ui/card";
 import { deleteMyReviewApi } from "./api";
@@ -143,12 +143,12 @@ export default function ReviewsPanel() {
           <select
             className="h-10 rounded-md border border-orange-200 bg-orange-100 text-gray-800 px-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-300 sm:w-[180px]"
             value={sort}
-            onChange={(e) => setSort(e.target.value as any)}
+            onChange={(e) => setSort(e.target.value as ReviewsSort)}
           >
             <option value="default">Default order</option>
             <option value="high">Highest rating</option>
             <option value="low">Lowest rating</option>
-            <option value="title">Title (A–Z)</option>
+            <option value="title">Title (A-Z)</option>
           </select>
         </div>
 
@@ -186,62 +186,62 @@ export default function ReviewsPanel() {
                         </button>
 
                         <div>
-  <button
-    type="button"
-    onMouseDown={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
+                          <button
+                            type="button"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
 
-      const rect = e.currentTarget.getBoundingClientRect();
-      const isOpen = openMenuId === r.reviewId;
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const isOpen = openMenuId === r.reviewId;
 
-      if (isOpen) {
-        setOpenMenuId(null);
-        setMenuPos(null);
-        return;
-      }
+                              if (isOpen) {
+                                setOpenMenuId(null);
+                                setMenuPos(null);
+                                return;
+                              }
 
-      setOpenMenuId(r.reviewId);
-      setMenuPos({
-        top: rect.bottom + window.scrollY + 6,
-        left: rect.right + window.scrollX,
-      });
-    }}
-    className="rounded-full border border-orange-200 bg-orange-100 p-2 text-gray-700 transition hover:bg-orange-200"
-    aria-label="Review options"
-  >
-    <MoreVertical className="h-4 w-4" />
-  </button>
+                              setOpenMenuId(r.reviewId);
+                              setMenuPos({
+                                top: rect.bottom + window.scrollY + 6,
+                                left: rect.right + window.scrollX,
+                              });
+                            }}
+                            className="rounded-full border border-orange-200 bg-orange-100 p-2 text-gray-700 transition hover:bg-orange-200"
+                            aria-label="Review options"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
 
-  {openMenuId === r.reviewId &&
-    menuPos &&
-    createPortal(
-      <div
-        className="fixed z-[9999]"
-        style={{
-          top: menuPos.top,
-          left: menuPos.left,
-          transform: "translateX(-100%)",
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className="w-44 rounded-md border border-orange-200 bg-orange-50 shadow-md p-1">
-          <button
-            type="button"
-            className="w-full rounded-sm px-2 py-2 text-left text-sm text-red-600 hover:bg-orange-100"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleDeleteReview(r.reviewId);
-            }}
-          >
-            Delete Review
-          </button>
-        </div>
-      </div>,
-      document.body
-    )}
-</div>
+                          {openMenuId === r.reviewId &&
+                            menuPos &&
+                            createPortal(
+                              <div
+                                className="fixed z-[9999]"
+                                style={{
+                                  top: menuPos.top,
+                                  left: menuPos.left,
+                                  transform: "translateX(-100%)",
+                                }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                              >
+                                <div className="w-44 rounded-md border border-orange-200 bg-orange-50 shadow-md p-1">
+                                  <button
+                                    type="button"
+                                    className="w-full rounded-sm px-2 py-2 text-left text-sm text-red-600 hover:bg-orange-100"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleDeleteReview(r.reviewId);
+                                    }}
+                                  >
+                                    Delete Review
+                                  </button>
+                                </div>
+                              </div>,
+                              document.body
+                            )}
+                        </div>
                       </div>
                       <div className="flex items-start gap-4">
                         {/*Cover*/}
