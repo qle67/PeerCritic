@@ -1,13 +1,13 @@
 "use client"
 
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
-import {Field, FieldDescription, FieldError, FieldGroup, FieldLabel} from "@/components/ui/field";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { AvatarDropDown, DEFAULT_AVATARS } from "@/components/ui/avatarDropDown";
-import {Input} from "@/components/ui/input";
-import {Button} from "@/components/ui/button";
-import {useEffect, useRef, useState} from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useEffect, useRef, useState } from "react";
 import axios from 'axios';
-import {useRouter, useSearchParams} from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from "next/link";
 
 // Default export - the main component rendered at the /signup route
@@ -22,7 +22,7 @@ export default function Page() {
 
   // avatars
   const [selectedAvatar, setSelectedAvatar] = useState<string | null>(DEFAULT_AVATARS[0]);
-  
+
   // Destructure push from the Next.js router to automatically navigate to  a new page
   const { push } = useRouter();
 
@@ -62,7 +62,7 @@ export default function Page() {
       console.error(error);
     }
   }
-  
+
   // Return or render block to define the signup page UI
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
@@ -80,11 +80,11 @@ export default function Page() {
               <Field>
                 <FieldLabel htmlFor="name">First Name</FieldLabel>
                 <Input id="name"
-                       className="border-gray-300"
-                       type="text"
-                       value={firstName}
-                       onChange={e => setFirstName(e.target.value)}
-                       required
+                  className="border-gray-300"
+                  type="text"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  required
                 />
                 {/* Show the error message only if the user attempt to submit and the field is empty */}
                 {isSubmitted && firstName.length <= 0 && (<FieldError>First name is required!</FieldError>)}
@@ -94,11 +94,11 @@ export default function Page() {
               <Field>
                 <FieldLabel htmlFor="name">Last Name</FieldLabel>
                 <Input id="name"
-                       className="border-gray-300"
-                       type="text"
-                       value={lastName}
-                       onChange={e => setLastName(e.target.value)}
-                       required
+                  className="border-gray-300"
+                  type="text"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  required
                 />
                 {/* Show error only after first submission attempt if the field is still empty */}
                 {isSubmitted && lastName.length <= 0 && (<FieldError>Last name is required!</FieldError>)}
@@ -108,11 +108,11 @@ export default function Page() {
               <Field>
                 <FieldLabel htmlFor="username">Username</FieldLabel>
                 <Input id="username"
-                       className="border-gray-300"
-                       type="username"
-                       value={username}
-                       onChange={e => setUsername(e.target.value)}
-                       required
+                  className="border-gray-300"
+                  type="username"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  required
                 />
                 {/* Show error only after first submission attempt if the field is still empty */}
                 {isSubmitted && username.length <= 0 && (<FieldError>Username is required!</FieldError>)}
@@ -122,11 +122,11 @@ export default function Page() {
               <Field>
                 <FieldLabel htmlFor="password">Password</FieldLabel>
                 <Input id="password"
-                       className="border-gray-300"
-                       type="password"
-                       value={password}
-                       onChange={e => setPassword(e.target.value)}
-                       required
+                  className="border-gray-300"
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
                 />
                 {/* Live validation: if password has less than 6 characters, show error. Otherwise, show a hint */}
                 {password.length > 0 && password.length < 6
@@ -141,11 +141,11 @@ export default function Page() {
                   Confirm Password
                 </FieldLabel>
                 <Input id="confirm-password"
-                       className="border-gray-300"
-                       type="password"
-                       value={confirmPassword}
-                       onChange={e => setConfirmPassword(e.target.value)}
-                       required
+                  className="border-gray-300"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  required
                 />
                 {/* Live validation: if the 2 password don't match and the field is not empty, show the error. Otherwise, show a hint */}
                 {password != confirmPassword && confirmPassword.length > 0
@@ -157,7 +157,7 @@ export default function Page() {
               {/* Avatar field */}
               <Field>
                 <FieldLabel>Avatar</FieldLabel>
-                <AvatarDropDown selected={selectedAvatar} setSelected={setSelectedAvatar}/>
+                <AvatarDropDown selected={selectedAvatar} setSelected={setSelectedAvatar} />
               </Field>
 
               {/* Action buttons */}

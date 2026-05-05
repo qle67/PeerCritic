@@ -370,15 +370,15 @@ export default function FriendReviews({
                                                                 </p>
 
                                                                 {isLongReview && (
-  <button
-    type="button"
-    onClick={() => toggleReview(r.reviewId)}
-    aria-expanded={isExpanded}
-    className="mt-1.5 text-sm font-medium text-orange-700 hover:underline"
-  >
-    {isExpanded ? "Show less" : "Read more"}
-  </button>
-)}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => toggleReview(r.reviewId)}
+                                                                        aria-expanded={isExpanded}
+                                                                        className="mt-1.5 text-sm font-medium text-orange-700 hover:underline"
+                                                                    >
+                                                                        {isExpanded ? "Show less" : "Read more"}
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </div>

@@ -106,15 +106,15 @@ export default function Page() {
   }, [movieId]);
 
   function handleReviewClick() {
-  const token = localStorage.getItem("accessToken");
+    const token = localStorage.getItem("accessToken");
 
-  if (!token) {
-    router.push(`/login?next=${encodeURIComponent(pathname)}`);
-    return;
+    if (!token) {
+      router.push(`/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
+    setIsReviewFormOpen(true);
   }
-
-  setIsReviewFormOpen(true);
-}
 
   // Render movie detail page UI
   return (
@@ -221,8 +221,8 @@ export default function Page() {
                 {/* Action buttons for reviewing and sharing */}
                 <div className="mt-8 flex justify-center gap-5">
                   <Button className="bg-orange-400" onClick={handleReviewClick}>
-  REVIEW
-</Button>
+                    REVIEW
+                  </Button>
                   <Button className="bg-orange-400">SHARE</Button>
                 </div>
 
