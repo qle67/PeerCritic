@@ -7,14 +7,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import Image from "next/image";
 
-// Define allowed media types for fetching friend reviews
+// Define allowed media types for fetching reviews
 type MediaType = "movie" | "show" | "song";
 
 // Define supported sort modes
 type SortMode = "newest" | "oldest" | "high" | "low";
 
-// Define TypeScript type for Friend Review object returned by API
-type FriendReview = {
+// Define TypeScript type for media review object returned by API
+type MediaReview = {
     reviewId: number;
     review: string | null;
     reviewRating: number;
@@ -33,50 +33,48 @@ type FriendReview = {
     songId?: number | null;
 };
 
-// Define props for the FriendReviews component
-type FriendReviewsProps = {
+// Define props for the MediaReviews component
+type MediaReviewsProps = {
     mediaType: MediaType;
     mediaId: number;
 };
 
+// Define base API URL
 const API_BASE_URL = "http://localhost:8000";
 
-// Helper function to return the correct friend review endpoint
+// Helper function to return the correct media review endpoint
 function getEndpoint(mediaType: MediaType, mediaId: number) {
     if (mediaType === "song") {
-        return `${API_BASE_URL}/my/friends/reviews/song/${mediaId}`;
+        return `${API_BASE_URL}/my/media/reviews/song/${mediaId}`;
     }
 
-    return `${API_BASE_URL}/my/friends/reviews/movie/${mediaId}`;
+    return `${API_BASE_URL}/my/media/reviews/movie/${mediaId}`;
 }
 
-// Export the friend reviews component rendered inside media detail pages
-export default function FriendReviews({
+// Export media reviews component rendered inside media detail pages
+export default function MediaReviews({
     mediaType,
     mediaId,
-}: FriendReviewsProps) {
-    // State to hold the fetched friend reviews
-    const [reviews, setReviews] = useState<FriendReview[]>([]);
+}: MediaReviewsProps) {
+    // State to hold fetched reviews
+    const [reviews, setReviews] = useState<MediaReview[]>([]);
 
-    // State to track loading status while fetching reviews
+    // State to track loading status
     const [loading, setLoading] = useState(false);
 
-    // State to hold an error message if the request fails
+    // State to store fetch error message
     const [error, setError] = useState("");
 
-    // State to track whether the user is logged in
-    const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-
-    // State to track which review cards are expanded
+    // State to track which reviews are expanded
     const [expandedReviews, setExpandedReviews] = useState<Record<number, boolean>>({});
 
-    // State to track sort mode
+    // State to store current selected sort mode
     const [sort, setSort] = useState<SortMode>("newest");
 
-    // Memoize the endpoint so it only changes when media type or id changes
+    // Memoized endpoint for current media item
     const endpoint = useMemo(() => getEndpoint(mediaType, mediaId), [mediaType, mediaId]);
 
-    // Toggle a review between expanded and collapsed
+    // Toggle expanded state for a review card
     function toggleReview(reviewId: number) {
         setExpandedReviews((prev) => ({
             ...prev,
@@ -84,68 +82,39 @@ export default function FriendReviews({
         }));
     }
 
-    // Reset expanded review state when switching to a different media item
+    // Reset expanded reviews and sort mode when media changes
     useEffect(() => {
         setExpandedReviews({});
         setSort("newest");
     }, [mediaType, mediaId]);
 
-    // Fetch friend reviews when the endpoint changes
+    // Fetch reviews when endpoint changes
     useEffect(() => {
-        async function fetchFriendReviews() {
-            // Get access token from local storage
-            const token = localStorage.getItem("accessToken");
-
-            // If no token exists, treat the user as logged out
-            if (!token) {
-                setIsLoggedIn(false);
-                setReviews([]);
-                setError("");
-                setLoading(false);
-                return;
-            }
-
+        async function fetchMediaReviews() {
             try {
-                // Start loading and clear any previous error
                 setLoading(true);
                 setError("");
 
-                // Send a GET request to the friend reviews endpoint
                 const response = await axios.get(endpoint, {
                     headers: {
                         Accept: "application/json",
-                        Authorization: `Bearer ${token}`,
                     },
                 });
 
-                // Store the returned review data in state
                 setReviews(response.data ?? []);
-                setIsLoggedIn(true);
             } catch (err) {
                 console.error(err);
-
-                // If token is invalid or expired, remove it and treat user as logged out
-                if (axios.isAxiosError(err) && err.response?.status === 401) {
-                    localStorage.removeItem("accessToken");
-                    setIsLoggedIn(false);
-                    setReviews([]);
-                    setError("");
-                } else {
-                    // Otherwise show an error while still considering the user logged in
-                    setIsLoggedIn(true);
-                    setReviews([]);
-                    setError("Could not load friend reviews.");
-                }
+                setReviews([]);
+                setError("Could not load reviews.");
             } finally {
-                // Stop loading after request finishes
                 setLoading(false);
             }
         }
 
-        void fetchFriendReviews();
+        void fetchMediaReviews();
     }, [endpoint]);
 
-    // Build sorted review list
+    // Memoized sorted reviews list based on selected sort mode
     const sortedReviews = useMemo(() => {
         const next = [...reviews];
 
@@ -178,26 +147,18 @@ export default function FriendReviews({
         return next;
     }, [reviews, sort]);
 
-    // Render the friend reviews section UI
     return (
-        <div className="mt-8">
-            {/*Section header*/}
-            <div className="bg-orange-300 justify-self-center w-90 border-orange-400 border-3 rounded-lg p-1">
-                <div className="text-xl font-bold justify-self-center mt-1">
-                    Your Friends&apos; Ratings
+        <div className="mt-3 w-full max-w-xl self-center">
+            {/* Reviews section header */}
+            <div className="rounded-lg border-2 border-orange-200 bg-orange-50 px-4 py-2 text-center shadow-sm">
+                <div className="text-xl font-bold text-gray-900">
+                    All Reviews
                 </div>
             </div>
 
-            <div className="justify-self-center w-90 mt-3">
-                {/*Login prompt when user is not logged in*/}
-                {isLoggedIn === false ? (
-                    <Card className="bg-orange-100 border-orange-300">
-                        <CardContent className="p-4 text-sm text-gray-600 text-center">
-                            Log in to see your friends&apos; reviews.
-                        </CardContent>
-                    </Card>
-                ) : loading ? (
-                    /*Animated skeleton cards while reviews are loading*/
+            <div className="mt-3">
+                {loading ? (
+                    // Loading skeleton cards
                     <div className="space-y-3">
                         {Array.from({ length: 3 }).map((_, index) => (
                             <motion.div
@@ -206,25 +167,25 @@ export default function FriendReviews({
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.2, delay: index * 0.04 }}
                             >
-                                <Card className="border-orange-300 bg-orange-100 shadow-sm">
+                                <Card className="border-orange-200 bg-orange-50 shadow-sm">
                                     <CardContent className="p-3">
                                         <div className="flex items-start gap-2.5">
-                                            <div className="h-12 w-12 shrink-0 rounded-full bg-orange-200 animate-pulse" />
+                                            <div className="h-12 w-12 shrink-0 rounded-full bg-orange-100 animate-pulse" />
 
                                             <div className="flex-1 space-y-1.5">
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div className="space-y-1.5">
-                                                        <div className="h-4 w-28 rounded bg-orange-200 animate-pulse" />
-                                                        <div className="h-3 w-20 rounded bg-orange-200 animate-pulse" />
+                                                        <div className="h-4 w-28 rounded bg-orange-100 animate-pulse" />
+                                                        <div className="h-3 w-20 rounded bg-orange-100 animate-pulse" />
                                                     </div>
 
-                                                    <div className="h-8 w-16 rounded-full bg-orange-200 animate-pulse" />
+                                                    <div className="h-8 w-16 rounded-full bg-orange-100 animate-pulse" />
                                                 </div>
 
-                                                <div className="border-t border-orange-200 pt-2 space-y-1.5">
-                                                    <div className="h-4 w-full rounded bg-orange-200 animate-pulse" />
-                                                    <div className="h-4 w-11/12 rounded bg-orange-200 animate-pulse" />
-                                                    <div className="h-4 w-3/4 rounded bg-orange-200 animate-pulse" />
+                                                <div className="border-t border-orange-100 pt-2 space-y-1.5">
+                                                    <div className="h-4 w-full rounded bg-orange-100 animate-pulse" />
+                                                    <div className="h-4 w-11/12 rounded bg-orange-100 animate-pulse" />
+                                                    <div className="h-4 w-3/4 rounded bg-orange-100 animate-pulse" />
                                                 </div>
                                             </div>
                                         </div>
@@ -234,17 +195,17 @@ export default function FriendReviews({
                         ))}
                     </div>
                 ) : error ? (
-                    /*Show error state if the request fails*/
-                    <Card className="bg-orange-100 border-orange-300">
-                        <CardContent className="p-4 text-sm text-gray-600 text-center">
+                    // Error state when reviews fail to load
+                    <Card className="border-orange-200 bg-orange-50">
+                        <CardContent className="p-4 text-center text-sm text-gray-600">
                             {error}
                         </CardContent>
                     </Card>
                 ) : reviews.length === 0 ? (
-                    /*Show empty state if no friends have reviewed the media*/
-                    <Card className="bg-orange-100 border-orange-300">
-                        <CardContent className="p-4 text-sm text-gray-600 text-center">
-                            None of your friends have reviewed this yet.
+                    // Empty state when no reviews exist
+                    <Card className="border-orange-200 bg-orange-50">
+                        <CardContent className="p-4 text-center text-sm text-gray-600">
+                            No reviews yet.
                         </CardContent>
                     </Card>
                 ) : (
@@ -271,14 +232,14 @@ export default function FriendReviews({
                                         >
                                             {isActive && (
                                                 <motion.span
-                                                    layoutId="sort-pill-active"
-                                                    className="absolute inset-0 rounded-full bg-orange-400"
+                                                    layoutId="media-sort-pill-active"
+                                                    className="absolute inset-0 rounded-full bg-orange-200"
                                                     transition={{ type: "spring", stiffness: 500, damping: 35 }}
                                                 />
                                             )}
 
                                             <span
-                                                className={`relative z-10 ${isActive ? "text-white" : "text-gray-700"
+                                                className={`relative z-10 ${isActive ? "text-gray-900" : "text-gray-700"
                                                     }`}
                                             >
                                                 {option.label}
@@ -289,7 +250,7 @@ export default function FriendReviews({
                             </div>
                         </div>
 
-                        {/*Render animated list of friend review cards*/}
+                        {/* Review cards list */}
                         <motion.div
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -297,17 +258,17 @@ export default function FriendReviews({
                             className="space-y-3"
                         >
                             {sortedReviews.map((r, index) => {
-                                // Build display name from first/last name, falling back to username
+                                // Build display name from first and last name, fallback to username
                                 const displayName =
                                     [r.firstName, r.lastName].filter(Boolean).join(" ").trim() || r.username;
 
-                                // Use review text if present, otherwise show fallback text
+                                // Fallback text when user leaves no written review
                                 const reviewText = r.review?.trim() || "No written review.";
 
-                                // Check whether this review is currently expanded
+                                // Check if current review is expanded
                                 const isExpanded = !!expandedReviews[r.reviewId];
 
-                                // Check whether the review is long enough to need truncation
+                                // Check if review is long enough to support expand/collapse
                                 const isLongReview = reviewText.length > 250;
 
                                 return (
@@ -318,13 +279,14 @@ export default function FriendReviews({
                                         transition={{ duration: 0.22, ease: "easeOut", delay: index * 0.04 }}
                                     >
                                         <Card
-                                            className={`border-orange-300 bg-orange-100 shadow-sm transition-all duration-200 ${isLongReview ? "hover:border-orange-400 hover:shadow-md" : ""
+                                            className={`border-orange-200 bg-orange-50 shadow-sm transition-all duration-200 ${isLongReview ? "hover:border-orange-300 hover:shadow-md" : ""
                                                 }`}
                                         >
                                             <div className="block w-full bg-transparent text-left">
                                                 <CardContent className="p-3">
                                                     <div className="flex items-start gap-2.5">
-                                                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-orange-300 bg-orange-200">
+                                                        {/* User avatar or fallback initial */}
+                                                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-orange-200 bg-orange-100">
                                                             {r.avatar ? (
                                                                 <Image
                                                                     src={r.avatar}
@@ -349,7 +311,8 @@ export default function FriendReviews({
                                                                     <div className="mt-1 text-xs text-gray-600">@{r.username}</div>
                                                                 </div>
 
-                                                                <div className="shrink-0 flex items-center gap-1 rounded-full border border-orange-300 bg-white px-3 py-1">
+                                                                {/* Review rating badge */}
+                                                                <div className="shrink-0 flex items-center gap-1 rounded-full border border-orange-200 bg-orange-100 px-3 py-1">
                                                                     <Star className="h-4 w-4 fill-[#F3B413] text-[#F3B413]" />
                                                                     <span className="text-sm font-semibold text-blue-700">
                                                                         {r.reviewRating.toFixed(1)}
@@ -358,7 +321,7 @@ export default function FriendReviews({
                                                                 </div>
                                                             </div>
 
-                                                            <div className="mt-3 border-t border-orange-200 pt-2">
+                                                            <div className="mt-3 border-t border-orange-100 pt-2">
                                                                 <p
                                                                     className={
                                                                         isExpanded || !isLongReview
@@ -369,6 +332,7 @@ export default function FriendReviews({
                                                                     {reviewText}
                                                                 </p>
 
+                                                                {/* Expand or collapse label for long reviews */}
                                                                 {isLongReview && (
                                                                     <button
                                                                         type="button"

@@ -142,6 +142,7 @@ export default function Page() {
   // State to hold the selected genre
   const [selectedGenre, setSelectedGenre] = useState<string>("");
 
+  // State to hold loading state
   const [loadingMovies, setLoadingMovies] = useState(false);
 
   // Reset search options
@@ -319,7 +320,7 @@ export default function Page() {
   }, []);
 
   return (
-    <div className="mx-auto">
+    <div className="mx-auto overflow-x-hidden">
       <Navbar />
       <motion.div
         initial={{ opacity: 0, y: 8 }}

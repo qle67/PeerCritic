@@ -16,3 +16,9 @@ export async function fetchMyReviewsApi(): Promise<Review[]> {
   // avoid undefined errors
   return res.data ?? [];
 }
+
+export async function deleteMyReviewApi(reviewId: number): Promise<void> {
+  await axios.delete(`http://localhost:8000/my/reviews/${reviewId}`, {
+    headers: authHeaders(),
+  });
+}

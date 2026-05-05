@@ -107,9 +107,9 @@ export default function FriendsPanel({
 
     return (
         <div className="w-full lg:col-span-1 self-start">
-            <div className="rounded-lg border border-border bg-background/80 backdrop-blur-sm shadow-sm flex flex-col min-h-0 max-h-[calc(100vh-16rem)]">
+            <div className="rounded-lg border border-orange-200 bg-orange-50/80 backdrop-blur-sm shadow-sm flex flex-col min-h-0 max-h-[calc(100vh-16rem)]">
                 {/*Header*/}
-                <div className="px-4 pt-4 pb-3 border-b border-border/60">
+                <div className="px-4 pt-4 pb-3 border-b border-orange-200">
                     <div className="flex items-start justify-between gap-3">
                         <div>
                             <h2 className="text-lg font-bold leading-none">Friends</h2>
@@ -149,13 +149,13 @@ export default function FriendsPanel({
                                 placeholder="Search users by username…"
                                 value={userSearchQuery}
                                 onChange={(e) => setUserSearchQuery(e.target.value)}
-                                className="h-9 text-sm"
+                                className="h-9 text-sm border-orange-200 bg-orange-100 text-gray-800 placeholder:text-gray-500 focus-visible:ring-orange-300"
                             />
                         </div>
                     ) : (
                         <>
                             {/*Tabs*/}
-                            <div className="mt-3 inline-flex items-center gap-1">
+                            <div className="mt-3 flex flex-wrap items-center gap-1">
                                 {(
                                     [
                                         { key: "friends", label: "My Friends", count: tabCounts.friends },
@@ -170,7 +170,7 @@ export default function FriendsPanel({
                                         onClick={() => setFriendsTab(t.key)}
                                         className={`rounded-full px-4 border-orange-300 ${friendsTab === t.key
                                             ? "bg-orange-400 text-white hover:bg-orange-500"
-                                            : "bg-background text-black hover:bg-orange-100"
+                                            : "bg-orange-100 text-gray-800 hover:bg-orange-200"
                                             }`}
                                     >
                                         <span className="mr-2">{t.label}</span>
@@ -198,7 +198,7 @@ export default function FriendsPanel({
                                     }
                                     value={friendQuery}
                                     onChange={(e) => setFriendQuery(e.target.value)}
-                                    className="h-9 text-sm"
+                                    className="h-9 text-sm border-orange-200 bg-orange-100 text-gray-800 placeholder:text-gray-500 focus-visible:ring-orange-300"
                                 />
                             </div>
                         </>
@@ -225,9 +225,9 @@ export default function FriendsPanel({
                                         return (
                                             <div
                                                 key={u.userId}
-                                                className="group flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted/60 transition-colors"
+                                                className="group flex items-center gap-2 rounded-md border border-transparent px-2 py-2 transition-colors hover:border-orange-200 hover:bg-orange-100"
                                             >
-                                                <div className="h-9 w-9 overflow-hidden rounded-full border border-border bg-muted shrink-0">
+                                                <div className="h-9 w-9 overflow-hidden rounded-full border border-orange-200 bg-orange-100 shrink-0">
                                                     {u.avatar ? (
                                                         <img
                                                             src={u.avatar}
@@ -252,7 +252,7 @@ export default function FriendsPanel({
 
                                                 <Button
                                                     size="sm"
-                                                    className={`rounded-full ${isFriend || isPending ? "opacity-60 cursor-not-allowed" : ""}`}
+                                                    className={`rounded-full border-orange-300 ${isFriend || isPending ? "opacity-60 cursor-not-allowed" : "bg-orange-400 text-white hover:bg-orange-500"}`}
                                                     disabled={isFriend || isPending}
                                                     onClick={() => sendFriendRequest(u.userId)}
                                                     title={label}
@@ -287,7 +287,7 @@ export default function FriendsPanel({
                                             key={f.userId}
                                             className="group flex items-center gap-2 rounded-md px-2 py-2 hover:bg-muted/60 transition-colors"
                                         >
-                                            <div className="h-9 w-9 overflow-hidden rounded-full border border-border bg-muted shrink-0">
+                                            <div className="h-9 w-9 overflow-hidden rounded-full border border-orange-200 bg-orange-100 shrink-0">
                                                 {f.avatar ? (
                                                     <img
                                                         src={f.avatar}
@@ -405,9 +405,9 @@ export default function FriendsPanel({
                                                                 }}
                                                                 onMouseDown={(e) => e.stopPropagation()}
                                                             >
-                                                                <div className="w-44 rounded-md border border-border bg-background shadow-md p-1">
+                                                                <div className="w-44 rounded-md border border-orange-200 bg-orange-50 shadow-md p-1">
                                                                     <button
-                                                                        className="w-full rounded-sm px-2 py-2 text-left text-sm text-red-600 hover:bg-muted"
+                                                                        className="w-full rounded-sm px-2 py-2 text-left text-sm text-red-600 hover:bg-orange-100"
                                                                         onMouseDown={(e) => {
                                                                             e.preventDefault();
                                                                             e.stopPropagation();

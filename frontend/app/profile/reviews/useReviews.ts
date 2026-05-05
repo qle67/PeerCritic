@@ -53,14 +53,15 @@ export function useReviews() {
   }, [reviews, activeTab, query, sort]);
 
   // Precompute counts for All / Movie / Song tabs.
-  const tabCounts = useMemo(
-    () => ({
-      all: reviews.length,
-      movie: reviews.filter((r) => r.kind === "movie").length,
-      song: reviews.filter((r) => r.kind === "song").length,
-    }),
-    [reviews]
-  );
+const tabCounts = useMemo(
+  () => ({
+    all: reviews.length,
+    movie: reviews.filter((r) => r.kind === "movie").length,
+    song: reviews.filter((r) => r.kind === "song").length,
+    tv: reviews.filter((r) => r.kind === "tv").length,
+  }),
+  [reviews]
+);
 
   return {
     // Raw data

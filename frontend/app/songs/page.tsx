@@ -135,40 +135,40 @@ export default function Page() {
     setSelectedGenre(genre);
   }
 
-const searchSongs = useCallback(async (page: number = 1) => {
-  if (page >= 1) {
-    setCurrentPage(page);
-  }
+  const searchSongs = useCallback(async (page: number = 1) => {
+    if (page >= 1) {
+      setCurrentPage(page);
+    }
 
-  try {
-    setLoadingSongs(true);
+    try {
+      setLoadingSongs(true);
 
-    const response = await axios.get("http://localhost:8000/songs", {
-      headers: {
-        "Accept": 'application/json'
-      },
-      params: {
-        page: page,
-        size: 8,
-        search_text: searchText !== "" ? searchText : undefined,
-        search_year: selectedYear !== "" ? selectedYear : undefined,
-        search_artist: selectedArtist !== "" ? selectedArtist : undefined,
-        search_genre: selectedGenre !== "" ? selectedGenre : undefined,
-      }
-    });
+      const response = await axios.get("http://localhost:8000/songs", {
+        headers: {
+          "Accept": 'application/json'
+        },
+        params: {
+          page: page,
+          size: 8,
+          search_text: searchText !== "" ? searchText : undefined,
+          search_year: selectedYear !== "" ? selectedYear : undefined,
+          search_artist: selectedArtist !== "" ? selectedArtist : undefined,
+          search_genre: selectedGenre !== "" ? selectedGenre : undefined,
+        }
+      });
 
-    setSongs(response.data.items as Song[]);
-    setTotalPages(response.data.pages);
-  } catch (error) {
-    console.error(error);
-  } finally {
-    setLoadingSongs(false);
-  }
-}, [searchText, selectedYear, selectedArtist, selectedGenre]);
+      setSongs(response.data.items as Song[]);
+      setTotalPages(response.data.pages);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoadingSongs(false);
+    }
+  }, [searchText, selectedYear, selectedArtist, selectedGenre]);
 
-useEffect(() => {
-  searchSongs();
-}, [searchSongs]);
+  useEffect(() => {
+    searchSongs();
+  }, [searchSongs]);
 
   // Async function to fetch Get Artists from API
   async function getArtists() {
@@ -211,13 +211,13 @@ useEffect(() => {
   }
 
   // Triggers data fetching function on page load
-useEffect(() => {
-  getArtists();        // Fetch Get Artists
-  getGenres();         // Fetch Get Genres
-}, []);
+  useEffect(() => {
+    getArtists();        // Fetch Get Artists
+    getGenres();         // Fetch Get Genres
+  }, []);
 
   return (
-    <div className="mx-auto">
+    <div className="mx-auto overflow-x-hidden">
       <Navbar />
       <motion.div
         initial={{ opacity: 0, y: 8 }}

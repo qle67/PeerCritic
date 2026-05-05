@@ -133,3 +133,21 @@
 body {
   background-color: #F8E8DD;
 }
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(254 215 170); /* orange-100 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(253 186 116); /* orange-300 */
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(251 146 60); /* orange-400 */
+}

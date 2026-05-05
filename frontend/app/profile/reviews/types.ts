@@ -1,5 +1,5 @@
 // The type of media a review belongs to. (For filtering and tab selection)
-export type ReviewKind = "movie" | "song";
+export type ReviewKind = "movie" | "song" | "tv";
 
 // Represents a single user review from the backend.
 export interface Review {
@@ -8,7 +8,7 @@ export interface Review {
   reviewRating: number;               // Average Rating
   reviewRatingCount: number | null;   // Total # of ratings
 
-  kind: ReviewKind;                   // movie or song (currently)
+  kind: ReviewKind;                   // movie, song, or tv
   title: string;
   cover?: string | null;
 
@@ -17,6 +17,7 @@ export interface Review {
 }
 
 // Tabs in the review panel
-export type ReviewsTab = "all" | "movie" | "song"; 
+export type ReviewsTab = "all" | "movie" | "song" | "tv";
+
 // Sorting modes
 export type ReviewsSort = "default" | "high" | "low" | "title";
