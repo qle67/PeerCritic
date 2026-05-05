@@ -56,6 +56,8 @@ export default function Page() {
       console.log(response.data);
       // Save the access token returned by the server into localStorage.
       localStorage.setItem("accessToken", response.data.access_token);
+
+      localStorage.setItem("refreshToken", response.data.refresh_token);
       // Navigate the user to the home page after successful signup
       push(next);
     } catch (error) {

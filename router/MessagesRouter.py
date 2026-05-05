@@ -5,12 +5,16 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 
 from model.database import SessionDep
 from model.User import User
 from model.Profile import Profile
 from model.Friendship import Friendship
 from model.Messages import Conversation, ConversationMember, Message
+from model.Review import Review
+from model.Movie import Movie
+from model.Song import Song
 from router.Authentication import get_current_user
 from ws_manager import manager
 
@@ -60,6 +64,50 @@ def canonical_pair(a: int, b: int) -> tuple[int, int]:
 
 
 router = APIRouter(prefix="/messages", tags=["messages"])
+
+def build_shared_review(session: Session, review_id: int | None):
+    if review_id is None:
+        return None
+
+    review = session.exec(
+        select(Review)
+        .where(Review.review_id == review_id)
+        .options(
+            selectinload(Review.movie).selectinload(Movie.episodes),
+            selectinload(Review.song),
+        )
+    ).first()
+
+    if not review:
+        return None
+
+    if review.movie_id is not None and review.movie is not None:
+        return {
+            "reviewId": review.review_id,
+            "review": review.review,
+            "reviewRating": review.review_rating,
+            "reviewRatingCount": review.review_rating_count,
+            "kind": "tv" if review.movie.episodes else "movie",
+            "title": review.movie.movie_name,
+            "cover": review.movie.cover,
+            "movieId": review.movie_id,
+            "songId": None,
+        }
+
+    if review.song_id is not None and review.song is not None:
+        return {
+            "reviewId": review.review_id,
+            "review": review.review,
+            "reviewRating": review.review_rating,
+            "reviewRatingCount": review.review_rating_count,
+            "kind": "song",
+            "title": review.song.song_name,
+            "cover": review.song.cover,
+            "movieId": None,
+            "songId": review.song_id,
+        }
+
+    return None
 
 
 @router.get("/conversations")
@@ -307,9 +355,6 @@ def list_messages(
     limit: int = Query(50, ge=1, le=200),
     before_message_id: Optional[int] = Query(None, ge=1),
 ):
-    """
-    Fetch messages in a conversation.
-    """
     member = session.exec(
         select(ConversationMember).where(
             ConversationMember.conversation_id == conversation_id,
@@ -317,10 +362,12 @@ def list_messages(
             ConversationMember.left_datetime.is_(None),
         )
     ).first()
+
     if not member:
         raise HTTPException(403, "Not a member of this conversation")
 
     stmt = select(Message).where(Message.conversation_id == conversation_id)
+
     if before_message_id is not None:
         stmt = stmt.where(Message.message_id < before_message_id)
 
@@ -336,6 +383,11 @@ def list_messages(
             "conversationId": m.conversation_id,
             "fromUserId": m.from_user_id,
             "messageText": m.message_text,
+            "messageType": m.message_type,
+            "sharedReviewId": m.shared_review_id,
+            "sharedReview": build_shared_review(session, m.shared_review_id)
+            if m.message_type == "review_share"
+            else None,
             "sentDatetime": m.sent_datetime,
         }
         for m in msgs
@@ -352,9 +404,21 @@ async def send_message(
     MAX_MESSAGE_LENGTH = 2000
 
     message_text = (payload.get("messageText") or "").strip()
+    message_type = payload.get("messageType") or "text"
+    shared_review_id = payload.get("sharedReviewId")
 
-    if not message_text:
+    if message_type not in ["text", "review_share"]:
+        raise HTTPException(400, "Invalid messageType")
+
+    if message_type == "text" and not message_text:
         raise HTTPException(400, "messageText is required")
+
+    if message_type == "review_share":
+        if shared_review_id is None:
+            raise HTTPException(400, "sharedReviewId is required")
+
+        if not message_text:
+            message_text = "Shared a review"
 
     if len(message_text) > MAX_MESSAGE_LENGTH:
         raise HTTPException(400, f"Message too long (max {MAX_MESSAGE_LENGTH} characters)")
@@ -379,6 +443,8 @@ async def send_message(
         conversation_id=conversation_id,
         from_user_id=current_user.user_id,
         message_text=message_text,
+        message_type=message_type,
+        shared_review_id=shared_review_id,
         sent_datetime=now,
     )
 
@@ -421,6 +487,11 @@ async def send_message(
         "conversationId": msg.conversation_id,
         "fromUserId": msg.from_user_id,
         "messageText": msg.message_text,
+        "messageType": msg.message_type,
+        "sharedReviewId": msg.shared_review_id,
+        "sharedReview": build_shared_review(session, msg.shared_review_id)
+        if msg.message_type == "review_share"
+        else None,
         "sentDatetime": msg.sent_datetime.isoformat(),
     }
 

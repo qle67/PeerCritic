@@ -14,7 +14,6 @@ from model.Song import Song
 
 from router.Authentication import get_current_user
 
-# Define API router for review-related endpoints under /my
 router = APIRouter(prefix="/my", tags=["reviews"])
 
 
@@ -384,9 +383,7 @@ async def create_or_update_movie_review(
     current_user: Annotated[User, Depends(get_current_user)],
     session: SessionDep,
 ):
-    movie = session.exec(
-        select(Movie).where(Movie.movie_id == movie_id)
-    ).first()
+    movie = session.exec(select(Movie).where(Movie.movie_id == movie_id)).first()
 
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
@@ -447,9 +444,7 @@ async def create_or_update_song_review(
     current_user: Annotated[User, Depends(get_current_user)],
     session: SessionDep,
 ):
-    song = session.exec(
-        select(Song).where(Song.song_id == song_id)
-    ).first()
+    song = session.exec(select(Song).where(Song.song_id == song_id)).first()
 
     if not song:
         raise HTTPException(status_code=404, detail="Song not found")
@@ -500,6 +495,7 @@ async def create_or_update_song_review(
         movieId=None,
         songId=new_review.song_id,
     )
+
 
 @router.delete("/reviews/{review_id}")
 async def delete_my_review(

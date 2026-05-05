@@ -6,6 +6,7 @@ import { Star } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 
 // Define allowed media types for fetching reviews
 type MediaType = "movie" | "show" | "song";
@@ -305,9 +306,9 @@ export default function MediaReviews({
                                                         <div className="min-w-0 flex-1">
                                                             <div className="flex items-start justify-between gap-3">
                                                                 <div className="min-w-0">
-                                                                    <div className="truncate font-semibold text-black">
+                                                                    <Link href={`/users/${r.userId}`} className="truncate font-semibold text-black hover:underline">
                                                                         {displayName}
-                                                                    </div>
+                                                                    </Link>
                                                                     <div className="mt-1 text-xs text-gray-600">@{r.username}</div>
                                                                 </div>
 

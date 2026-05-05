@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { MoreVertical, Share2, Star } from "lucide-react";
@@ -9,6 +10,7 @@ import type { ReviewsSort, ReviewsTab } from "./types";
 import { useReviews } from "./useReviews";
 import { Card } from "@/components/ui/card";
 import { deleteMyReviewApi } from "./api";
+import { AnimatePresence, motion } from "framer-motion";
 
 // UI-only. Review logic in useReviews()
 export default function ReviewsPanel() {
@@ -26,11 +28,21 @@ export default function ReviewsPanel() {
     refreshReviews,   // function for reloading reviews
   } = useReviews();
 
+  const [shareReview, setShareReview] = useState<null | {
+    reviewId: number;
+    title: string;
+    text: string;
+  }>(null);
+
+  const [friends, setFriends] = useState<any[]>([]);
+
   const [expandedReviews, setExpandedReviews] = useState<Record<number, boolean>>({});
 
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
 
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+
+  const [shareSuccess, setShareSuccess] = useState("");
 
   function toggleReview(reviewId: number) {
     setExpandedReviews((prev) => ({
@@ -51,20 +63,63 @@ export default function ReviewsPanel() {
     }
   }
 
-  async function handleShareReview(title: string) {
-    const shareText = `Check out my review for ${title}`;
+  async function sendReviewToFriend(friendId: number) {
+    const token = localStorage.getItem("accessToken");
+    if (!token || !shareReview) return;
 
-    if (navigator.share) {
-      await navigator.share({
-        title: "PeerCritic Review",
-        text: shareText,
-        url: window.location.href,
-      });
-    } else {
-      await navigator.clipboard.writeText(window.location.href);
-      alert("Link copied to clipboard.");
+    try {
+      const conv = await axios.post(
+        `http://localhost:8000/messages/dm/${friendId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const conversationId = conv.data.conversationId;
+
+      await axios.post(
+        `http://localhost:8000/messages/conversations/${conversationId}/messages`,
+        {
+          messageText: "Shared a review",
+          messageType: "review_share",
+          sharedReviewId: shareReview.reviewId,
+        },
+        {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setShareReview(null);
+      setFriends([]);
+      setShareSuccess("Review sent!");
+
+      setTimeout(() => {
+        setShareSuccess("");
+      }, 2500);
+    } catch (err) {
+      console.error(err);
+      alert("Could not send review.");
     }
   }
+
+  useEffect(() => {
+    if (!shareReview) return;
+
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    axios.get("http://localhost:8000/my/friends", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }).then(res => setFriends(res.data))
+      .catch(err => console.error(err));
+
+  }, [shareReview]);
 
   useEffect(() => {
     function onDocMouseDown() {
@@ -178,7 +233,13 @@ export default function ReviewsPanel() {
                       <div className="absolute top-3 right-3 flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => handleShareReview(r.title)}
+                          onClick={() =>
+                            setShareReview({
+                              reviewId: r.reviewId,
+                              title: r.title,
+                              text: r.review?.trim() || "No written review.",
+                            })
+                          }
                           className="rounded-full border border-orange-200 bg-orange-100 p-2 text-gray-700 transition hover:bg-orange-200"
                           aria-label="Share review"
                         >
@@ -329,6 +390,87 @@ export default function ReviewsPanel() {
           )}
         </div>
       </div>
+
+      {shareReview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setShareReview(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-lg border border-orange-200 bg-orange-50 p-4 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3">
+              <h2 className="text-lg font-bold text-gray-900">Share Review</h2>
+              <p className="text-sm text-gray-600">{shareReview.title}</p>
+            </div>
+
+            <div className="max-h-72 space-y-2 overflow-y-auto">
+              {friends.length === 0 ? (
+                <div className="text-sm text-gray-600">
+                  You do not have any friends to share this with.
+                </div>
+              ) : (
+                friends.map((f) => (
+                  <button
+                    key={f.userId}
+                    type="button"
+                    onClick={() => sendReviewToFriend(f.userId)}
+                    className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left hover:bg-orange-100"
+                  >
+                    <div className="h-9 w-9 overflow-hidden rounded-full border border-orange-200 bg-orange-100">
+                      {f.avatar ? (
+                        <img
+                          src={f.avatar}
+                          alt={f.username}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-gray-600">
+                          ?
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {f.username}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {f.firstName} {f.lastName}
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-orange-300 bg-orange-100 hover:bg-orange-200"
+                onClick={() => setShareReview(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      <AnimatePresence>
+        {shareSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.96 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed bottom-6 right-6 z-50 rounded-xl border border-green-200 bg-green-50 px-6 py-4 text-base font-semibold text-green-700 shadow-lg"
+          >
+            {shareSuccess}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

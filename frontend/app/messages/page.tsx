@@ -5,8 +5,10 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Plus, X } from "lucide-react";
+import { MessageSquare, Plus, X, Star } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +64,22 @@ type MsgRow = {
   conversationId: number;
   fromUserId: number;
   messageText: string;
+  messageType: "text" | "review_share";
+  sharedReviewId: number | null;
+  sharedReview: SharedReview | null;
   sentDatetime: string;
+};
+
+type SharedReview = {
+  reviewId: number;
+  review: string | null;
+  reviewRating: number;
+  reviewRatingCount: number | null;
+  kind: "movie" | "song" | "tv";
+  title: string;
+  cover?: string | null;
+  movieId: number | null;
+  songId: number | null;
 };
 
 function cx(...classes: Array<string | false | undefined | null>) {
@@ -76,6 +93,65 @@ const api = axios.create({
 function authHeaders() {
   const token = localStorage.getItem("accessToken");
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function ReviewShareCard({ review }: { review: SharedReview }) {
+  const href =
+    review.kind === "song"
+      ? `/songs/${review.songId}`
+      : `/movies/${review.movieId}`;
+
+  const reviewText = review.review?.trim() || "No written review.";
+
+  return (
+    <div className="mt-1 block max-w-md rounded-xl border border-orange-200 bg-orange-50 p-3 shadow-sm transition hover:border-orange-300 hover:bg-orange-100">
+      <Link href={href} className="flex gap-3">
+        <div className="h-16 w-12 shrink-0 overflow-hidden rounded-md border border-orange-200 bg-orange-100">
+          {review.cover ? (
+            <img
+              src={review.cover}
+              alt={review.title}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-500">
+              No cover
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="truncate text-sm font-semibold text-gray-900 hover:underline">
+                {review.title}
+              </div>
+              <div className="mt-1 text-xs text-gray-600">
+                {review.kind === "movie"
+                  ? "Movie"
+                  : review.kind === "song"
+                    ? "Song"
+                    : "TV Show"}
+              </div>
+            </div>
+
+            <div className="shrink-0 flex items-center gap-1 rounded-full border border-orange-300 bg-orange-200/70 px-2 py-0.5">
+              <Star className="h-3.5 w-3.5 fill-[#F3B413] text-[#F3B413]" />
+              <span className="text-xs font-semibold text-blue-700">
+                {review.reviewRating.toFixed(1)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </Link>
+
+      <p className="mt-3 text-xs leading-5 text-gray-700 whitespace-pre-wrap break-words">
+        {reviewText}
+      </p>
+    </div>
+  );
 }
 
 export default function Messages() {
@@ -97,63 +173,66 @@ export default function Messages() {
   const shouldStickToBottomRef = useRef(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasMoreOlder, setHasMoreOlder] = useState(true);
+  const searchParams = useSearchParams();
+  const conversationIdFromUrl = searchParams.get("conversationId");
+  const router = useRouter();
 
   useEffect(() => {
-  if (shouldStickToBottomRef.current) {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }
-}, [messages]);
+    if (shouldStickToBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
 
   async function loadOlderMessages() {
-  if (!selected || loadingOlder || !hasMoreOlder || messages.length === 0) return;
+    if (!selected || loadingOlder || !hasMoreOlder || messages.length === 0) return;
 
-  const container = messagesContainerRef.current;
-  const oldestMessageId = messages[0]?.messageId;
-  if (!oldestMessageId) return;
+    const container = messagesContainerRef.current;
+    const oldestMessageId = messages[0]?.messageId;
+    if (!oldestMessageId) return;
 
-  setLoadingOlder(true);
+    setLoadingOlder(true);
 
-  const previousScrollHeight = container?.scrollHeight ?? 0;
+    const previousScrollHeight = container?.scrollHeight ?? 0;
 
-  try {
-    const res = await api.get<MsgRow[]>(
-      `/messages/conversations/${selected.conversationId}/messages?limit=50&before_message_id=${oldestMessageId}`,
-      { headers: authHeaders() }
-    );
+    try {
+      const res = await api.get<MsgRow[]>(
+        `/messages/conversations/${selected.conversationId}/messages?limit=50&before_message_id=${oldestMessageId}`,
+        { headers: authHeaders() }
+      );
 
-    const older = res.data;
+      const older = res.data;
 
-    if (older.length === 0) {
-      setHasMoreOlder(false);
-      return;
+      if (older.length === 0) {
+        setHasMoreOlder(false);
+        return;
+      }
+
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((m) => m.messageId));
+        const dedupedOlder = older.filter((m) => !existingIds.has(m.messageId));
+        return [...dedupedOlder, ...prev];
+      });
+
+      requestAnimationFrame(() => {
+        const el = messagesContainerRef.current;
+        if (!el) return;
+
+        const newScrollHeight = el.scrollHeight;
+        const heightDiff = newScrollHeight - previousScrollHeight;
+        el.scrollTop = el.scrollTop + heightDiff;
+      });
+
+      if (older.length < 50) {
+        setHasMoreOlder(false);
+      }
+    } finally {
+      setLoadingOlder(false);
     }
-
-    setMessages((prev) => {
-      const existingIds = new Set(prev.map((m) => m.messageId));
-      const dedupedOlder = older.filter((m) => !existingIds.has(m.messageId));
-      return [...dedupedOlder, ...prev];
-    });
-
-    requestAnimationFrame(() => {
-      const el = messagesContainerRef.current;
-      if (!el) return;
-
-      const newScrollHeight = el.scrollHeight;
-      const heightDiff = newScrollHeight - previousScrollHeight;
-      el.scrollTop = el.scrollTop + heightDiff;
-    });
-
-    if (older.length < 50) {
-      setHasMoreOlder(false);
-    }
-  } finally {
-    setLoadingOlder(false);
   }
-}
 
   async function loadMembers(conversationId: number) {
     const res = await api.get<MemberRow[]>(
@@ -189,117 +268,117 @@ export default function Messages() {
     return distanceFromBottom <= threshold;
   }
 
-function handleMessagesScroll() {
-  const el = messagesContainerRef.current;
-  if (!el) return;
+  function handleMessagesScroll() {
+    const el = messagesContainerRef.current;
+    if (!el) return;
 
-  shouldStickToBottomRef.current = isNearBottom(el);
+    shouldStickToBottomRef.current = isNearBottom(el);
 
-  if (el.scrollTop <= 120) {
-    loadOlderMessages().catch(console.log);
-  }
-}
-
-const ensureWs = useCallback(() => {
-  if (
-    wsRef.current &&
-    (wsRef.current.readyState === WebSocket.OPEN ||
-      wsRef.current.readyState === WebSocket.CONNECTING)
-  ) {
-    return;
-  }
-
-  const token = localStorage.getItem("accessToken");
-  if (!token) {
-    console.log("No access token found for WebSocket");
-    return;
-  }
-
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const ws = new WebSocket(
-    `${protocol}://localhost:8000/ws/messages?token=${encodeURIComponent(token)}`
-  );
-
-  wsRef.current = ws;
-
-  ws.onopen = () => {
-    console.log("WS open");
-  };
-
-  ws.onmessage = (event) => {
-    console.log("WS raw message:", event.data);
-
-    try {
-      const data = JSON.parse(event.data);
-
-      if (data.type === "message" && data.message) {
-        const m = data.message as MsgRow;
-
-        const isCurrentConversation =
-          !!selectedRef.current &&
-          m.conversationId === selectedRef.current.conversationId;
-
-        setMessages((prev) => {
-          if (!isCurrentConversation) return prev;
-          if (prev.some((x) => x.messageId === m.messageId)) return prev;
-          return [...prev, m];
-        });
-
-        const refresh = () => refreshConversations().catch(console.log);
-
-        if (isCurrentConversation) {
-          api.post(
-            `/messages/conversations/${m.conversationId}/read`,
-            {},
-            { headers: authHeaders() }
-          )
-            .then(refresh)
-            .catch(console.log);
-        } else {
-          refresh();
-        }
-      }
-
-      if (data.type === "conversation_update") {
-        refreshConversations().catch(console.log);
-      }
-
-      if (data.type === "inbox_update") {
-        refreshConversations().catch(console.log);
-      }
-
-      if (data.type === "error") {
-        console.log("WS server error message:", data.message);
-      }
-
-      if (data.type === "connected") {
-        console.log("WS connected ack:", data);
-      }
-
-      if (data.type === "subscribed") {
-        console.log("WS subscribed ack:", data);
-      }
-
-      if (data.type === "unsubscribed") {
-        console.log("WS unsubscribed ack:", data);
-      }
-    } catch (e) {
-      console.log("WS message parse error:", e);
+    if (el.scrollTop <= 120) {
+      loadOlderMessages().catch(console.log);
     }
-  };
+  }
 
-  ws.onerror = () => {
-    console.log("WS error event fired");
-  };
+  const ensureWs = useCallback(() => {
+    if (
+      wsRef.current &&
+      (wsRef.current.readyState === WebSocket.OPEN ||
+        wsRef.current.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
+    }
 
-  ws.onclose = (event) => {
-    console.log(
-      `WS close code=${event.code} reason="${event.reason}" clean=${event.wasClean}`
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      console.log("No access token found for WebSocket");
+      return;
+    }
+
+    const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const ws = new WebSocket(
+      `${protocol}://localhost:8000/ws/messages?token=${encodeURIComponent(token)}`
     );
-    wsRef.current = null;
-    subscribedConvRef.current = null;
-  };
-}, []);
+
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      console.log("WS open");
+    };
+
+    ws.onmessage = (event) => {
+      console.log("WS raw message:", event.data);
+
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "message" && data.message) {
+          const m = data.message as MsgRow;
+
+          const isCurrentConversation =
+            !!selectedRef.current &&
+            m.conversationId === selectedRef.current.conversationId;
+
+          setMessages((prev) => {
+            if (!isCurrentConversation) return prev;
+            if (prev.some((x) => x.messageId === m.messageId)) return prev;
+            return [...prev, m];
+          });
+
+          const refresh = () => refreshConversations().catch(console.log);
+
+          if (isCurrentConversation) {
+            api.post(
+              `/messages/conversations/${m.conversationId}/read`,
+              {},
+              { headers: authHeaders() }
+            )
+              .then(refresh)
+              .catch(console.log);
+          } else {
+            refresh();
+          }
+        }
+
+        if (data.type === "conversation_update") {
+          refreshConversations().catch(console.log);
+        }
+
+        if (data.type === "inbox_update") {
+          refreshConversations().catch(console.log);
+        }
+
+        if (data.type === "error") {
+          console.log("WS server error message:", data.message);
+        }
+
+        if (data.type === "connected") {
+          console.log("WS connected ack:", data);
+        }
+
+        if (data.type === "subscribed") {
+          console.log("WS subscribed ack:", data);
+        }
+
+        if (data.type === "unsubscribed") {
+          console.log("WS unsubscribed ack:", data);
+        }
+      } catch (e) {
+        console.log("WS message parse error:", e);
+      }
+    };
+
+    ws.onerror = () => {
+      console.log("WS error event fired");
+    };
+
+    ws.onclose = (event) => {
+      console.log(
+        `WS close code=${event.code} reason="${event.reason}" clean=${event.wasClean}`
+      );
+      wsRef.current = null;
+      subscribedConvRef.current = null;
+    };
+  }, []);
 
   async function createDmWith(friendUserId: number) {
     const res = await api.post<{ conversationId: number }>(
@@ -377,10 +456,10 @@ const ensureWs = useCallback(() => {
   }
 
   async function openConversation(conv: ConversationRow) {
-  shouldStickToBottomRef.current = true;
-  setHasMoreOlder(true);
-  setLoadingOlder(false);
-  setSelected(conv);
+    shouldStickToBottomRef.current = true;
+    setHasMoreOlder(true);
+    setLoadingOlder(false);
+    setSelected(conv);
 
     ensureWs();
     const ws = wsRef.current;
@@ -477,17 +556,37 @@ const ensureWs = useCallback(() => {
     };
   }
 
+  useEffect(() => {
+    const targetConversationId = Number(conversationIdFromUrl);
 
-useEffect(() => {
-  fetchMe().catch(console.error);
-  refreshConversations().catch(console.error);
+    if (!targetConversationId || conversations.length === 0) return;
 
-  ensureWs();
+    if (selectedRef.current?.conversationId === targetConversationId) return;
 
-  return () => {
-    wsRef.current?.close();
-  };
-}, [ensureWs]);
+    const targetConversation = conversations.find(
+      (c) => c.conversationId === targetConversationId
+    );
+
+    if (targetConversation) {
+      openConversation(targetConversation)
+        .then(() => {
+          router.replace("/messages");
+        })
+        .catch(console.error);
+    }
+  }, [conversationIdFromUrl, conversations, router]);
+
+
+  useEffect(() => {
+    fetchMe().catch(console.error);
+    refreshConversations().catch(console.error);
+
+    ensureWs();
+
+    return () => {
+      wsRef.current?.close();
+    };
+  }, [ensureWs]);
 
   const headerTitle = selected
     ? selected.isGroup
@@ -562,12 +661,12 @@ useEffect(() => {
                                 >
                                   {f.avatar ? (
                                     <Image
-  src={f.avatar}
-  alt=""
-  width={40}
-  height={40}
-  className="h-10 w-10 rounded-full object-cover"
-/>
+                                      src={f.avatar}
+                                      alt=""
+                                      width={40}
+                                      height={40}
+                                      className="h-10 w-10 rounded-full object-cover"
+                                    />
                                   ) : (
                                     <div className="h-9 w-9 rounded-full bg-muted" />
                                   )}
@@ -635,12 +734,12 @@ useEffect(() => {
                           <div className="flex items-center gap-3">
                             {avatar ? (
                               <Image
-  src={avatar}
-  alt=""
-  width={40}
-  height={40}
-  className="h-10 w-10 rounded-full object-cover"
-/>
+                                src={avatar}
+                                alt=""
+                                width={40}
+                                height={40}
+                                className="h-10 w-10 rounded-full object-cover"
+                              />
                             ) : (
                               <div className="h-10 w-10 rounded-full bg-orange-200/70 dark:bg-orange-900/40" />
                             )}
@@ -700,20 +799,29 @@ useEffect(() => {
                   <div className="px-4 py-3 flex items-center gap-3">
                     {headerAvatar ? (
                       <Image
-  src={headerAvatar}
-  alt=""
-  width={40}
-  height={40}
-  className="h-10 w-10 rounded-full object-cover"
-/>
+                        src={headerAvatar}
+                        alt=""
+                        width={40}
+                        height={40}
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
                     ) : (
                       <div className="h-8 w-8 rounded-full bg-orange-200/70 dark:bg-orange-900/40" />
                     )}
 
                     <div className="min-w-0">
-                      <div className="font-semibold leading-tight truncate">
-                        {headerTitle}
-                      </div>
+                      {selected.isGroup || !selected.otherUser ? (
+                        <div className="font-semibold leading-tight truncate">
+                          {headerTitle}
+                        </div>
+                      ) : (
+                        <Link
+                          href={`/users/${selected.otherUser.userId}`}
+                          className="block font-semibold leading-tight truncate hover:underline"
+                        >
+                          {headerTitle}
+                        </Link>
+                      )}
                       <div className="text-xs text-muted-foreground">
                         {selected.isGroup ? "Group chat" : "Direct message"}
                       </div>
@@ -745,12 +853,12 @@ useEffect(() => {
                           {!isGrouped ? (
                             info.avatar ? (
                               <Image
-  src={info.avatar}
-  alt=""
-  width={40}
-  height={40}
-  className="h-10 w-10 rounded-full object-cover"
-/>
+                                src={info.avatar}
+                                alt=""
+                                width={40}
+                                height={40}
+                                className="h-10 w-10 rounded-full object-cover"
+                              />
                             ) : (
                               <div className="h-10 w-10 rounded-full bg-orange-200/70 dark:bg-orange-900/40" />
                             )
@@ -774,9 +882,13 @@ useEffect(() => {
                             </div>
                           ) : null}
 
-                          <div className="text-sm leading-tight text-foreground/90 whitespace-pre-wrap break-words">
-                            {m.messageText}
-                          </div>
+                          {m.messageType === "review_share" && m.sharedReview ? (
+                            <ReviewShareCard review={m.sharedReview} />
+                          ) : (
+                            <div className="text-sm leading-tight text-foreground/90 whitespace-pre-wrap break-words">
+                              {m.messageText}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
