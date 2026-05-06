@@ -15,6 +15,7 @@ type PublicUserProfile = {
     firstName: string;
     lastName: string;
     avatar: string | null;
+    friendCount: number;
 };
 
 type PublicReview = {
@@ -354,13 +355,8 @@ export default function PublicUserProfilePage() {
                                 </div>
 
                                 <div className="rounded-lg border border-orange-200 bg-orange-100 p-3">
-                                    <div className="text-xl font-bold text-gray-900">0</div>
-                                    <div className="text-sm text-gray-600">Followers</div>
-                                </div>
-
-                                <div className="rounded-lg border border-orange-200 bg-orange-100 p-3">
-                                    <div className="text-xl font-bold text-gray-900">0</div>
-                                    <div className="text-sm text-gray-600">Following</div>
+                                    <div className="text-xl font-bold text-gray-900">{user.friendCount}</div>
+                                    <div className="text-sm text-gray-600">Friends</div>
                                 </div>
                             </div>
                         </section>
@@ -370,9 +366,6 @@ export default function PublicUserProfilePage() {
                                 <h2 className="text-2xl font-bold text-gray-900">
                                     {user.firstName}&apos;s Reviews
                                 </h2>
-                                <p className="mt-1 text-sm text-gray-600">
-                                    {reviews.length} total
-                                </p>
                             </div>
 
                             <div className="mt-4 space-y-3">

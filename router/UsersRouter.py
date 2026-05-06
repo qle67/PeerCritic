@@ -12,6 +12,8 @@ from model.Review import Review
 from model.Movie import Movie
 from model.Song import Song
 from sqlalchemy.orm import selectinload
+from sqlalchemy import func
+from model.Friendship import Friendship
 
 router = APIRouter(tags=["users"])
 
@@ -85,12 +87,20 @@ def get_user_profile(
 
     u, p = row
 
+    friend_count = session.exec(
+        select(func.count(Friendship.id)).where(
+            Friendship.status == "accepted",
+            (Friendship.requester_id == user_id) | (Friendship.addressee_id == user_id),
+        )
+    ).one()
+
     return {
         "userId": u.user_id,
         "username": u.username,
         "firstName": (p.first_name if p else ""),
         "lastName": (p.last_name if p else ""),
         "avatar": (p.avatar if p else None),
+        "friendCount": friend_count,
     }
 
 

@@ -11,11 +11,11 @@ from model.User import User
 from model.Friendship import Friendship
 from model.Movie import Movie
 from model.Song import Song
+from sqlalchemy import func
 
 from router.Authentication import get_current_user
 
 router = APIRouter(prefix="/my", tags=["reviews"])
-
 
 # Define response model for current user's reviews
 class MyReviewOut(BaseModel):
@@ -103,6 +103,35 @@ def get_accepted_friend_ids(current_user_id: int, session: SessionDep) -> set[in
         )
 
     return friend_ids
+
+def update_movie_rating(session, movie_id: int):
+    result = session.exec(
+        select(func.avg(Review.review_rating), func.count(Review.review_id))
+        .where(Review.movie_id == movie_id)
+    ).first()
+
+    avg, count = result if result else (None, 0)
+
+    movie = session.get(Movie, movie_id)
+    if movie:
+        movie.movie_rating = round(float(avg), 1) if avg is not None else None
+        movie.movie_rating_count = count
+        session.add(movie)
+
+
+def update_song_rating(session, song_id: int):
+    result = session.exec(
+        select(func.avg(Review.review_rating), func.count(Review.review_id))
+        .where(Review.song_id == song_id)
+    ).first()
+
+    avg, count = result if result else (None, 0)
+
+    song = session.get(Song, song_id)
+    if song:
+        song.song_rating = round(float(avg), 1) if avg is not None else None
+        song.song_rating_count = count
+        session.add(song)
 
 
 # Get all reviews written by the current user
@@ -402,6 +431,8 @@ async def create_or_update_movie_review(
         session.add(existing_review)
         session.commit()
         session.refresh(existing_review)
+        update_movie_rating(session, movie_id)
+        session.commit()
 
         return ReviewOut(
             reviewId=existing_review.review_id,
@@ -416,7 +447,7 @@ async def create_or_update_movie_review(
     new_review = Review(
         review=payload.review,
         review_rating=payload.reviewRating,
-        review_rating_count=movie.movie_rating_count,
+        review_rating_count=None,
         user_id=current_user.user_id,
         movie_id=movie_id,
         song_id=None,
@@ -425,6 +456,9 @@ async def create_or_update_movie_review(
     session.add(new_review)
     session.commit()
     session.refresh(new_review)
+
+    update_movie_rating(session, movie_id)
+    session.commit()
 
     return ReviewOut(
         reviewId=new_review.review_id,
@@ -463,6 +497,8 @@ async def create_or_update_song_review(
         session.add(existing_review)
         session.commit()
         session.refresh(existing_review)
+        update_song_rating(session, song_id)
+        session.commit()
 
         return ReviewOut(
             reviewId=existing_review.review_id,
@@ -477,7 +513,7 @@ async def create_or_update_song_review(
     new_review = Review(
         review=payload.review,
         review_rating=payload.reviewRating,
-        review_rating_count=song.song_rating_count,
+        review_rating_count=None,
         user_id=current_user.user_id,
         movie_id=None,
         song_id=song_id,
@@ -486,6 +522,9 @@ async def create_or_update_song_review(
     session.add(new_review)
     session.commit()
     session.refresh(new_review)
+
+    update_song_rating(session, song_id)
+    session.commit()
 
     return ReviewOut(
         reviewId=new_review.review_id,

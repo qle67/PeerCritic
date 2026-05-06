@@ -15,6 +15,18 @@ import ReviewForm from "@/app/reviewform/reviewForm";
 import api from "@/app/apiClient";
 import { Input } from "@/components/ui/input";
 
+type MyReview = {
+  reviewId: number;
+  review: string | null;
+  reviewRating: number;
+  reviewRatingCount: number | null;
+  kind: "movie" | "song" | "tv";
+  title: string;
+  cover: string | null;
+  movieId: number | null;
+  songId: number | null;
+};
+
 // Define the TypeScript type for an Artist object returned by API
 type Artist = {
   artistId: number;
@@ -52,6 +64,8 @@ export default function Page() {
 
   const pathname = usePathname();
 
+  const [myReview, setMyReview] = useState<MyReview | null>(null);
+
   // State variable to hold the fetched song details
   const [song, setSong] = useState<Song>();
 
@@ -67,6 +81,8 @@ export default function Page() {
   const [friendQuery, setFriendQuery] = useState("");
   const [shareSuccess, setShareSuccess] = useState("");
 
+  const isLoggedIn = typeof window !== "undefined" && !!localStorage.getItem("accessToken");
+
   useEffect(() => {
     if (!songId) return;
 
@@ -74,7 +90,7 @@ export default function Page() {
 
     async function loadSongPage() {
       try {
-        const [songResponse, similarResponse] = await Promise.all([
+        const [songResponse, similarResponse, myReviewsResponse] = await Promise.all([
           axios.get(`http://localhost:8000/songs/${songId}`, {
             headers: {
               Accept: "application/json",
@@ -89,12 +105,20 @@ export default function Page() {
               size: 20,
             },
           }),
+          api.get("/my/reviews").catch(() => ({ data: [] })),
         ]);
 
         if (isCancelled) return;
 
         setSong(songResponse.data);
         setSimilarSongs(similarResponse?.data?.items ?? []);
+        const reviews = myReviewsResponse.data as MyReview[];
+
+        const matchingReview = reviews.find((review) => {
+          return review.songId === Number(songId);
+        });
+
+        setMyReview(matchingReview ?? null);
       } catch (error) {
         if (!isCancelled) {
           console.error(error);
@@ -224,8 +248,22 @@ export default function Page() {
 
                 {/* User rating */}
                 <div className="flex font-bold text-xl justify-self-center border-orange-300 border-3 p-2 rounded-lg mt-8">
-                  You Rated:&nbsp;
-                  <div className="font-bold text-blue-700">10</div>
+                  {!isLoggedIn ? (
+                    <div className="text-muted-foreground">
+                      Log in to view your rating
+                    </div>
+                  ) : myReview ? (
+                    <>
+                      You Rated:&nbsp;
+                      <div className="font-bold text-blue-700">
+                        {myReview.reviewRating.toFixed(1)}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-muted-foreground">
+                      You haven&apos;t rated this yet
+                    </div>
+                  )}
                 </div>
 
                 {/* Action buttons */}

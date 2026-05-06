@@ -169,6 +169,34 @@ function ReviewShareCard({ review }: { review: SharedReview }) {
   );
 }
 
+function formatTimestamp(dateString: string) {
+  const normalizedDateString = dateString.endsWith("Z")
+    ? dateString
+    : `${dateString}Z`;
+
+  const date = new Date(normalizedDateString);
+  const now = new Date();
+
+  const yesterday = new Date();
+  yesterday.setDate(now.getDate() - 1);
+
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
+
+  if (date.toDateString() === yesterday.toDateString()) {
+    return "Yesterday";
+  }
+
+  return date.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function MediaShareCard({ media }: { media: SharedMedia }) {
   return (
     <Link
@@ -410,6 +438,14 @@ export default function Messages() {
           }
         }
 
+        if (data.type === "message_deleted") {
+          setMessages((prev) =>
+            prev.filter((m) => m.messageId !== data.messageId)
+          );
+
+          refreshConversations().catch(console.log);
+        }
+
         if (data.type === "conversation_update") {
           refreshConversations().catch(console.log);
         }
@@ -618,6 +654,16 @@ export default function Messages() {
       avatar: null,
       isMe: me ? fromUserId === me.userId : false,
     };
+  }
+
+  async function deleteMessage(messageId: number) {
+    await api.delete(`/messages/messages/${messageId}`, {
+      headers: authHeaders(),
+    });
+
+    setMessages((prev) => prev.filter((m) => m.messageId !== messageId));
+
+    refreshConversations().catch(console.log);
   }
 
 
@@ -894,6 +940,10 @@ export default function Messages() {
                   </div>
                 </div>
 
+                <div className="border-b border-yellow-300 bg-yellow-100 px-4 py-2 text-sm text-yellow-800">
+                  Messages are not encrypted. Do not share sensitive or personal information.
+                </div>
+
                 {/*Messages*/}
                 <div
                   ref={messagesContainerRef}
@@ -909,7 +959,7 @@ export default function Messages() {
                       <div
                         key={m.messageId}
                         className={cx(
-                          "flex gap-2.5 rounded-xl px-2",
+                          "group relative flex gap-2.5 rounded-xl px-2",
                           isGrouped ? "py-0.5" : "py-1.5",
                           "hover:bg-orange-100/60 dark:hover:bg-orange-950/30"
                         )}
@@ -942,17 +992,28 @@ export default function Messages() {
                                 {info.username}
                               </div>
                               <div className="text-xs text-muted-foreground">
-                                {new Date(m.sentDatetime).toLocaleString()}
+                                {formatTimestamp(m.sentDatetime)}
                               </div>
                             </div>
                           ) : null}
+
+                          {info.isMe && (
+                            <button
+                              type="button"
+                              onClick={() => deleteMessage(m.messageId).catch(console.error)}
+                              className="absolute right-6 top-2 opacity-0 group-hover:opacity-100 transition
+               p-1.5 rounded-md hover:bg-red-100 hover:text-red-600"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
 
                           {m.messageType === "review_share" && m.sharedReview ? (
                             <ReviewShareCard review={m.sharedReview} />
                           ) : m.messageType === "media_share" && m.sharedMedia ? (
                             <MediaShareCard media={m.sharedMedia} />
                           ) : (
-                            <div className="text-sm leading-tight text-foreground/90 whitespace-pre-wrap break-words">
+                            <div className="max-w-[650px] whitespace-pre-wrap break-words break-all text-sm leading-tight text-foreground/90">
                               {m.messageText}
                             </div>
                           )}

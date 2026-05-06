@@ -691,3 +691,64 @@ async def delete_conversation_for_me(
     )
 
     return {"ok": True, "conversationId": conversation_id}
+
+@router.delete("/messages/{message_id}")
+async def delete_message(
+    message_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: SessionDep,
+):
+    msg = session.get(Message, message_id)
+
+    if not msg:
+        raise HTTPException(404, "Message not found")
+
+    if msg.from_user_id != current_user.user_id:
+        raise HTTPException(403, "You can only delete your own messages")
+
+    conversation_id = msg.conversation_id
+
+    member = session.exec(
+        select(ConversationMember).where(
+            ConversationMember.conversation_id == conversation_id,
+            ConversationMember.user_id == current_user.user_id,
+            ConversationMember.left_datetime.is_(None),
+        )
+    ).first()
+
+    if not member:
+        raise HTTPException(403, "Not a member of this conversation")
+
+    members_pointing_to_message = session.exec(
+        select(ConversationMember).where(
+            ConversationMember.last_read_message_id == message_id
+        )
+    ).all()
+
+    for m in members_pointing_to_message:
+        m.last_read_message_id = None
+        session.add(m)
+
+    session.commit()
+
+    session.delete(msg)
+    session.commit()
+
+    await manager.broadcast_to_conversation(
+        conversation_id,
+        {
+            "type": "message_deleted",
+            "messageId": message_id,
+            "conversationId": conversation_id,
+        },
+    )
+
+    await manager.broadcast_to_user(
+        current_user.user_id,
+        {
+            "type": "inbox_update",
+            "conversationId": conversation_id,
+        },
+    )
+
+    return {"ok": True, "messageId": message_id}

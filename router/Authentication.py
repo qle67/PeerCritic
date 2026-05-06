@@ -3,6 +3,7 @@
 import os
 from typing import Annotated
 
+import secrets
 from dns.message import AUTHORITY
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Path
@@ -108,6 +109,19 @@ class Token(BaseModel):
     token_type: str
 
 
+class SignupResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str
+    recovery_code: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    username: str
+    recovery_code: str
+    new_password: str
+
+
 # Create both a JWT access token and a refresh token with the username
 def create_access_token(username: str):
     access_token = AuthJWT.create_access_token(self=AuthJWT(), subject=username)
@@ -162,18 +176,24 @@ async def does_user_have_access(
 # Route handlers
 # post /signup - registers a new user account and returns a JWT token
 @router.post("/signup", operation_id="signup")
-async def signup(user_create: UserCreate, session: SessionDep) -> Token:
+async def signup(user_create: UserCreate, session: SessionDep) -> SignupResponse:
     # Check for duplicate username before creating the account
     user = get_user(user_create.username, session)
     if user is not None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken."
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already taken."
         )
+
+    recovery_code = secrets.token_urlsafe(12)
 
     # Create the User record with a hashed password - never store plain text passwords
     user = User(
-        username=user_create.username, password=get_password_hash(user_create.password)
+        username=user_create.username,
+        password=get_password_hash(user_create.password),
+        recovery_code_hash=get_password_hash(recovery_code),
     )
+
     session.add(user)
     session.commit()
     session.refresh(user)
@@ -185,9 +205,18 @@ async def signup(user_create: UserCreate, session: SessionDep) -> Token:
         avatar=user_create.avatar,
         user_id=user.user_id,
     )
+
     session.add(profile)
     session.commit()
-    return create_access_token(user.username)
+
+    token = create_access_token(user.username)
+
+    return SignupResponse(
+        access_token=token.access_token,
+        refresh_token=token.refresh_token,
+        token_type=token.token_type,
+        recovery_code=recovery_code,
+    )
 
 
 # post /login - authenticates an existing user and return a JWT token
@@ -204,6 +233,31 @@ async def login(
         )
     return create_access_token(form_data.username)
 
+
+@router.post("/forgot-password")
+async def forgot_password(
+    data: ForgotPasswordRequest,
+    session: SessionDep,
+):
+    user = get_user(data.username, session)
+
+    if not user or not user.recovery_code_hash:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid username or recovery code.",
+        )
+
+    if not verify_password(data.recovery_code, user.recovery_code_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid username or recovery code.",
+        )
+
+    user.password = get_password_hash(data.new_password)
+    session.add(user)
+    session.commit()
+
+    return {"message": "Password reset successfully."}
 
 # get /current user - returns the full profile of the current authenticated user
 @router.get("/current_user", response_model=UserProfilePublic)

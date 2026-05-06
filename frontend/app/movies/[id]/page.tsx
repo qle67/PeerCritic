@@ -51,6 +51,18 @@ type Friend = {
   avatar: string | null;
 };
 
+type MyReview = {
+  reviewId: number;
+  review: string | null;
+  reviewRating: number;
+  reviewRatingCount: number | null;
+  kind: "movie" | "song" | "tv";
+  title: string;
+  cover: string | null;
+  movieId: number | null;
+  songId: number | null;
+};
+
 // Export default page component rendered at the /movies/[id] route
 export default function Page() {
   // Get route parameters from the URL
@@ -59,6 +71,10 @@ export default function Page() {
   const router = useRouter();
 
   const pathname = usePathname();
+
+  const [myReview, setMyReview] = useState<MyReview | null>(null);
+
+  const isLoggedIn = typeof window !== "undefined" && !!localStorage.getItem("accessToken");
 
   // State variable to hold fetched movie details
   const [movie, setMovie] = useState<Movie>();
@@ -85,7 +101,7 @@ export default function Page() {
 
     async function loadMoviePage() {
       try {
-        const [movieResponse, similarResponse] = await Promise.all([
+        const [movieResponse, similarResponse, myReviewsResponse] = await Promise.all([
           axios.get(`http://localhost:8000/movies/${movieId}`, {
             headers: {
               Accept: "application/json",
@@ -100,12 +116,21 @@ export default function Page() {
               size: 20,
             },
           }),
+          api.get("/my/reviews").catch(() => ({ data: [] })),
         ]);
 
         if (isCancelled) return;
 
         setMovie(movieResponse.data);
         setSimilarMovies(similarResponse?.data?.items ?? []);
+        const reviews = myReviewsResponse.data as MyReview[];
+
+        const matchingReview = reviews.find((review) => {
+          const isSameMovie = review.movieId === Number(movieId);
+          return isSameMovie;
+        });
+
+        setMyReview(matchingReview ?? null);
       } catch (error) {
         if (!isCancelled) {
           console.error(error);
@@ -275,8 +300,22 @@ export default function Page() {
 
                 {/* User rating display */}
                 <div className="flex font-bold text-xl justify-self-center border-orange-300 border-3 p-2 rounded-lg mt-8">
-                  You Rated:&nbsp;
-                  <div className="font-bold text-blue-700">10</div>
+                  {!isLoggedIn ? (
+                    <div className="text-muted-foreground">
+                      Log in to view your rating
+                    </div>
+                  ) : myReview ? (
+                    <>
+                      You Rated:&nbsp;
+                      <div className="font-bold text-blue-700">
+                        {myReview.reviewRating.toFixed(1)}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-muted-foreground">
+                      You haven&apos;t rated this yet
+                    </div>
+                  )}
                 </div>
 
                 {/* Action buttons for reviewing and sharing */}
