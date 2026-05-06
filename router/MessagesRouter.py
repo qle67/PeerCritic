@@ -18,6 +18,7 @@ from model.Song import Song
 from router.Authentication import get_current_user
 from ws_manager import manager
 
+
 def hard_delete_conversation(session: Session, conversation_id: int) -> None:
     """
     Fully delete a conversation and all dependent rows in FK-safe order.
@@ -59,11 +60,13 @@ def hard_delete_conversation(session: Session, conversation_id: int) -> None:
         session.delete(conv)
         session.commit()
 
+
 def canonical_pair(a: int, b: int) -> tuple[int, int]:
     return (a, b) if a < b else (b, a)
 
 
 router = APIRouter(prefix="/messages", tags=["messages"])
+
 
 def build_shared_review(session: Session, review_id: int | None):
     if review_id is None:
@@ -90,6 +93,7 @@ def build_shared_review(session: Session, review_id: int | None):
             "kind": "tv" if review.movie.episodes else "movie",
             "title": review.movie.movie_name,
             "cover": review.movie.cover,
+            "year": review.movie.year,
             "movieId": review.movie_id,
             "songId": None,
         }
@@ -103,8 +107,53 @@ def build_shared_review(session: Session, review_id: int | None):
             "kind": "song",
             "title": review.song.song_name,
             "cover": review.song.cover,
+            "year": review.song.year,
             "movieId": None,
             "songId": review.song_id,
+        }
+
+    return None
+
+
+def build_shared_media(
+    session: Session,
+    movie_id: int | None,
+    song_id: int | None,
+):
+    if movie_id is not None:
+        movie = session.exec(
+            select(Movie)
+            .where(Movie.movie_id == movie_id)
+            .options(selectinload(Movie.episodes))
+        ).first()
+
+        if not movie:
+            return None
+
+        return {
+            "kind": "tv" if movie.episodes else "movie",
+            "id": movie.movie_id,
+            "title": movie.movie_name,
+            "cover": movie.cover,
+            "year": movie.year,
+            "rating": movie.movie_rating,
+            "href": f"/movies/{movie.movie_id}",
+        }
+
+    if song_id is not None:
+        song = session.exec(select(Song).where(Song.song_id == song_id)).first()
+
+        if not song:
+            return None
+
+        return {
+            "kind": "song",
+            "id": song.song_id,
+            "title": song.song_name,
+            "cover": song.cover,
+            "year": song.year,
+            "rating": song.song_rating,
+            "href": f"/songs/{song.song_id}",
         }
 
     return None
@@ -125,12 +174,18 @@ def list_conversations(
     """
     memberships = session.exec(
         select(ConversationMember, Conversation)
-        .join(Conversation, Conversation.conversation_id == ConversationMember.conversation_id)
+        .join(
+            Conversation,
+            Conversation.conversation_id == ConversationMember.conversation_id,
+        )
         .where(
             ConversationMember.user_id == current_user.user_id,
             ConversationMember.left_datetime.is_(None),
         )
-        .order_by(Conversation.last_message_at.desc().nullslast(), Conversation.updated_at.desc())
+        .order_by(
+            Conversation.last_message_at.desc().nullslast(),
+            Conversation.updated_at.desc(),
+        )
         .limit(limit)
     ).all()
 
@@ -168,7 +223,9 @@ def list_conversations(
                     {
                         "userId": other_user.user_id,
                         "username": other_user.username,
-                        "firstName": (other_profile.first_name if other_profile else ""),
+                        "firstName": (
+                            other_profile.first_name if other_profile else ""
+                        ),
                         "lastName": (other_profile.last_name if other_profile else ""),
                         "avatar": (other_profile.avatar if other_profile else None),
                     }
@@ -224,7 +281,9 @@ def create_or_get_dm(
             )
         ).all()
 
-        all_hidden = len(members) > 0 and all(m.left_datetime is not None for m in members)
+        all_hidden = len(members) > 0 and all(
+            m.left_datetime is not None for m in members
+        )
 
         if all_hidden:
             old_conversation_id = conv.conversation_id
@@ -371,9 +430,7 @@ def list_messages(
     if before_message_id is not None:
         stmt = stmt.where(Message.message_id < before_message_id)
 
-    msgs = session.exec(
-        stmt.order_by(Message.message_id.desc()).limit(limit)
-    ).all()
+    msgs = session.exec(stmt.order_by(Message.message_id.desc()).limit(limit)).all()
 
     msgs.reverse()
 
@@ -385,9 +442,18 @@ def list_messages(
             "messageText": m.message_text,
             "messageType": m.message_type,
             "sharedReviewId": m.shared_review_id,
-            "sharedReview": build_shared_review(session, m.shared_review_id)
-            if m.message_type == "review_share"
-            else None,
+            "sharedMovieId": m.shared_movie_id,
+            "sharedSongId": m.shared_song_id,
+            "sharedReview": (
+                build_shared_review(session, m.shared_review_id)
+                if m.message_type == "review_share"
+                else None
+            ),
+            "sharedMedia": (
+                build_shared_media(session, m.shared_movie_id, m.shared_song_id)
+                if m.message_type == "media_share"
+                else None
+            ),
             "sentDatetime": m.sent_datetime,
         }
         for m in msgs
@@ -406,8 +472,10 @@ async def send_message(
     message_text = (payload.get("messageText") or "").strip()
     message_type = payload.get("messageType") or "text"
     shared_review_id = payload.get("sharedReviewId")
+    shared_movie_id = payload.get("sharedMovieId")
+    shared_song_id = payload.get("sharedSongId")
 
-    if message_type not in ["text", "review_share"]:
+    if message_type not in ["text", "review_share", "media_share"]:
         raise HTTPException(400, "Invalid messageType")
 
     if message_type == "text" and not message_text:
@@ -420,8 +488,20 @@ async def send_message(
         if not message_text:
             message_text = "Shared a review"
 
+    if message_type == "media_share":
+        if shared_movie_id is None and shared_song_id is None:
+            raise HTTPException(400, "sharedMovieId or sharedSongId is required")
+
+        if shared_movie_id is not None and shared_song_id is not None:
+            raise HTTPException(400, "Share either a movie or a song, not both")
+
+        if not message_text:
+            message_text = "Shared media"
+
     if len(message_text) > MAX_MESSAGE_LENGTH:
-        raise HTTPException(400, f"Message too long (max {MAX_MESSAGE_LENGTH} characters)")
+        raise HTTPException(
+            400, f"Message too long (max {MAX_MESSAGE_LENGTH} characters)"
+        )
 
     member = session.exec(
         select(ConversationMember).where(
@@ -445,6 +525,8 @@ async def send_message(
         message_text=message_text,
         message_type=message_type,
         shared_review_id=shared_review_id,
+        shared_movie_id=shared_movie_id,
+        shared_song_id=shared_song_id,
         sent_datetime=now,
     )
 
@@ -489,9 +571,18 @@ async def send_message(
         "messageText": msg.message_text,
         "messageType": msg.message_type,
         "sharedReviewId": msg.shared_review_id,
-        "sharedReview": build_shared_review(session, msg.shared_review_id)
-        if msg.message_type == "review_share"
-        else None,
+        "sharedMovieId": msg.shared_movie_id,
+        "sharedSongId": msg.shared_song_id,
+        "sharedReview": (
+            build_shared_review(session, msg.shared_review_id)
+            if msg.message_type == "review_share"
+            else None
+        ),
+        "sharedMedia": (
+            build_shared_media(session, msg.shared_movie_id, msg.shared_song_id)
+            if msg.message_type == "media_share"
+            else None
+        ),
         "sentDatetime": msg.sent_datetime.isoformat(),
     }
 

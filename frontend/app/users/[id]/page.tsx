@@ -7,6 +7,7 @@ import axios from "axios";
 import { Card } from "@/components/ui/card";
 import { MessageCircle, UserPlus, MoreVertical, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 type PublicUserProfile = {
     userId: number;
@@ -392,7 +393,10 @@ export default function PublicUserProfilePage() {
                                             >
                                                 <div className="p-4">
                                                     <div className="flex items-start gap-4">
-                                                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-orange-200 bg-orange-100">
+                                                        <Link
+                                                            href={r.kind === "song" ? `/songs/${r.songId}` : `/movies/${r.movieId}`}
+                                                            className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-orange-200 bg-orange-100"
+                                                        >
                                                             {r.cover ? (
                                                                 <img
                                                                     src={r.cover}
@@ -406,14 +410,17 @@ export default function PublicUserProfilePage() {
                                                                     No cover
                                                                 </div>
                                                             )}
-                                                        </div>
+                                                        </Link>
 
                                                         <div className="min-w-0 flex-1">
                                                             <div className="flex items-start justify-between gap-3">
                                                                 <div className="min-w-0">
-                                                                    <div className="truncate font-medium text-gray-900">
+                                                                    <Link
+                                                                        href={r.kind === "song" ? `/songs/${r.songId}` : `/movies/${r.movieId}`}
+                                                                        className="block truncate font-medium text-gray-900 hover:underline"
+                                                                    >
                                                                         {r.title}
-                                                                    </div>
+                                                                    </Link>
 
                                                                     <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                                                                         <span className="rounded-full border border-orange-200 bg-orange-100 px-2 py-0.5 text-gray-600">

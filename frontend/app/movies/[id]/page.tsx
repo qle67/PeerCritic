@@ -5,13 +5,16 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { Star, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import FriendReviews from "@/app/viewfriendreviews/friendReviews";
 import MediaReviews from "@/app/viewreviews/mediaReviews";
+import api from "@/app/apiClient";
+import { Input } from "@/components/ui/input";
 import ReviewForm from "@/app/reviewform/reviewForm";
+import { AnimatePresence, motion } from "framer-motion";
 
 /* Define TypeScript type for episode object returned by API */
 type Episode = {
@@ -40,6 +43,14 @@ type Movie = {
   episodes: Episode[];
 }
 
+type Friend = {
+  userId: number;
+  username: string;
+  firstName: string;
+  lastName: string;
+  avatar: string | null;
+};
+
 // Export default page component rendered at the /movies/[id] route
 export default function Page() {
   // Get route parameters from the URL
@@ -60,6 +71,11 @@ export default function Page() {
 
   // State variable to control review form modal visibility
   const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
+
+  const [shareOpen, setShareOpen] = useState(false);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friendQuery, setFriendQuery] = useState("");
+  const [shareSuccess, setShareSuccess] = useState("");
 
   // Fetch movie details and similar movies when movie id changes
   useEffect(() => {
@@ -114,6 +130,51 @@ export default function Page() {
     }
 
     setIsReviewFormOpen(true);
+  }
+
+  async function openShareModal() {
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      window.location.href = `/login?next=${encodeURIComponent(`/movies/${movieId}`)}`;
+      return;
+    }
+
+    try {
+      const response = await api.get("/my/friends");
+      setFriends(response.data ?? []);
+      setShareOpen(true);
+    } catch (error) {
+      console.error(error);
+      alert("Could not load friends.");
+    }
+  }
+
+  async function shareMovieToFriend(friendId: number) {
+    if (!movie) return;
+
+    try {
+      const dmResponse = await api.post(`/messages/dm/${friendId}`, {});
+      const conversationId = dmResponse.data.conversationId;
+
+      await api.post(`/messages/conversations/${conversationId}/messages`, {
+        messageText: "Shared media",
+        messageType: "media_share",
+        sharedMovieId: movie.movieId,
+        sharedSongId: null,
+      });
+
+      setShareOpen(false);
+      setFriendQuery("");
+      setShareSuccess("Media sent!");
+
+      setTimeout(() => {
+        setShareSuccess("");
+      }, 2500);
+    } catch (error) {
+      console.error(error);
+      alert("Could not share media.");
+    }
   }
 
   // Render movie detail page UI
@@ -223,7 +284,14 @@ export default function Page() {
                   <Button className="bg-orange-400" onClick={handleReviewClick}>
                     REVIEW
                   </Button>
-                  <Button className="bg-orange-400">SHARE</Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={openShareModal}
+                    className="h-10 w-10 rounded-full border border-orange-200 bg-orange-100 text-gray-700 hover:bg-orange-200 transition-colors duration-200"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
                 </div>
 
                 {/* Official trailer section */}
@@ -318,6 +386,81 @@ export default function Page() {
               onClose={() => setIsReviewFormOpen(false)}
               onSuccess={() => window.location.reload()}
             />
+            {shareOpen && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+                onClick={() => setShareOpen(false)}
+              >
+                <div
+                  className="w-full max-w-md rounded-xl border border-orange-200 bg-orange-50 p-4 shadow-xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h2 className="text-lg font-bold text-gray-900">Share with a friend</h2>
+
+                  <Input
+                    className="mt-3 border-orange-200 bg-orange-100"
+                    placeholder="Search friends..."
+                    value={friendQuery}
+                    onChange={(e) => setFriendQuery(e.target.value)}
+                  />
+
+                  <div className="mt-3 max-h-72 space-y-1 overflow-y-auto">
+                    {friends
+                      .filter((f) => {
+                        const q = friendQuery.trim().toLowerCase();
+                        if (!q) return true;
+
+                        return `${f.firstName} ${f.lastName} ${f.username}`
+                          .toLowerCase()
+                          .includes(q);
+                      })
+                      .map((f) => (
+                        <button
+                          key={f.userId}
+                          type="button"
+                          onClick={() => shareMovieToFriend(f.userId)}
+                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-orange-100"
+                        >
+                          <div className="h-9 w-9 overflow-hidden rounded-full border border-orange-200 bg-orange-100">
+                            {f.avatar ? (
+                              <img
+                                src={f.avatar}
+                                alt={f.username}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">
+                                ?
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium text-gray-900">
+                              {`${f.firstName} ${f.lastName}`.trim() || f.username}
+                            </div>
+                            <div className="truncate text-xs text-gray-600">@{f.username}</div>
+                          </div>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <AnimatePresence>
+              {shareSuccess && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="fixed bottom-6 right-6 z-50 rounded-xl border border-green-200 bg-green-50 px-6 py-4 text-base font-semibold text-green-700 shadow-lg"
+                >
+                  {shareSuccess}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </>
         )}
       </div>

@@ -11,9 +11,19 @@ import { useReviews } from "./useReviews";
 import { Card } from "@/components/ui/card";
 import { deleteMyReviewApi } from "./api";
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 
 // UI-only. Review logic in useReviews()
 export default function ReviewsPanel() {
+
+  type Friend = {
+    userId: number;
+    username: string;
+    firstName: string;
+    lastName: string;
+    avatar: string | null;
+  };
+
   const {
     reviews,          // raw list from API
     filteredReviews,  // reviews after tab + search + sort are applied
@@ -34,7 +44,7 @@ export default function ReviewsPanel() {
     text: string;
   }>(null);
 
-  const [friends, setFriends] = useState<any[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
 
   const [expandedReviews, setExpandedReviews] = useState<Record<number, boolean>>({});
 
@@ -43,6 +53,8 @@ export default function ReviewsPanel() {
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
 
   const [shareSuccess, setShareSuccess] = useState("");
+
+  const [friendQuery, setFriendQuery] = useState("");
 
   function toggleReview(reviewId: number) {
     setExpandedReviews((prev) => ({
@@ -95,6 +107,7 @@ export default function ReviewsPanel() {
 
       setShareReview(null);
       setFriends([]);
+      setFriendQuery("");
       setShareSuccess("Review sent!");
 
       setTimeout(() => {
@@ -306,7 +319,10 @@ export default function ReviewsPanel() {
                       </div>
                       <div className="flex items-start gap-4">
                         {/*Cover*/}
-                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-orange-200 bg-orange-100">
+                        <Link
+                          href={r.kind === "song" ? `/songs/${r.songId}` : `/movies/${r.movieId}`}
+                          className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-orange-200 bg-orange-100"
+                        >
                           {r.cover ? (
                             <img
                               src={r.cover}
@@ -320,15 +336,18 @@ export default function ReviewsPanel() {
                               No cover
                             </div>
                           )}
-                        </div>
+                        </Link>
 
                         {/*Main info*/}
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="truncate font-medium text-gray-900">
+                              <Link
+                                href={r.kind === "song" ? `/songs/${r.songId}` : `/movies/${r.movieId}`}
+                                className="block truncate font-medium text-gray-900 hover:underline"
+                              >
                                 {r.title}
-                              </div>
+                              </Link>
 
                               <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                                 <span className="rounded-full border border-orange-200 px-2 py-0.5 text-xs bg-orange-100 text-gray-600">
@@ -394,7 +413,11 @@ export default function ReviewsPanel() {
       {shareReview && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-          onClick={() => setShareReview(null)}
+          onClick={() => {
+            setShareReview(null);
+            setFriends([]);
+            setFriendQuery("");
+          }}
         >
           <div
             className="w-full max-w-md rounded-lg border border-orange-200 bg-orange-50 p-4 shadow-lg"
@@ -405,43 +428,59 @@ export default function ReviewsPanel() {
               <p className="text-sm text-gray-600">{shareReview.title}</p>
             </div>
 
+            <Input
+              className="mb-3 border-orange-200 bg-orange-100"
+              placeholder="Search friends..."
+              value={friendQuery}
+              onChange={(e) => setFriendQuery(e.target.value)}
+            />
+
             <div className="max-h-72 space-y-2 overflow-y-auto">
               {friends.length === 0 ? (
                 <div className="text-sm text-gray-600">
                   You do not have any friends to share this with.
                 </div>
               ) : (
-                friends.map((f) => (
-                  <button
-                    key={f.userId}
-                    type="button"
-                    onClick={() => sendReviewToFriend(f.userId)}
-                    className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left hover:bg-orange-100"
-                  >
-                    <div className="h-9 w-9 overflow-hidden rounded-full border border-orange-200 bg-orange-100">
-                      {f.avatar ? (
-                        <img
-                          src={f.avatar}
-                          alt={f.username}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs text-gray-600">
-                          ?
-                        </div>
-                      )}
-                    </div>
+                friends
+                  .filter((f) => {
+                    const q = friendQuery.trim().toLowerCase();
+                    if (!q) return true;
 
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {f.username}
+                    return `${f.firstName} ${f.lastName} ${f.username}`
+                      .toLowerCase()
+                      .includes(q);
+                  })
+                  .map((f) => (
+                    <button
+                      key={f.userId}
+                      type="button"
+                      onClick={() => sendReviewToFriend(f.userId)}
+                      className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left hover:bg-orange-100"
+                    >
+                      <div className="h-9 w-9 overflow-hidden rounded-full border border-orange-200 bg-orange-100">
+                        {f.avatar ? (
+                          <img
+                            src={f.avatar}
+                            alt={f.username}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-xs text-gray-600">
+                            ?
+                          </div>
+                        )}
                       </div>
-                      <div className="text-xs text-gray-600">
-                        {f.firstName} {f.lastName}
+
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {f.username}
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {f.firstName} {f.lastName}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))
+                    </button>
+                  ))
               )}
             </div>
 
@@ -450,7 +489,11 @@ export default function ReviewsPanel() {
                 type="button"
                 variant="outline"
                 className="border-orange-300 bg-orange-100 hover:bg-orange-200"
-                onClick={() => setShareReview(null)}
+                onClick={() => {
+                  setShareReview(null);
+                  setFriends([]);
+                  setFriendQuery("");
+                }}
               >
                 Cancel
               </Button>

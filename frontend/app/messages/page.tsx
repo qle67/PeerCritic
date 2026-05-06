@@ -64,9 +64,12 @@ type MsgRow = {
   conversationId: number;
   fromUserId: number;
   messageText: string;
-  messageType: "text" | "review_share";
+  messageType: "text" | "review_share" | "media_share";
   sharedReviewId: number | null;
   sharedReview: SharedReview | null;
+  sharedMovieId: number | null;
+  sharedSongId: number | null;
+  sharedMedia: SharedMedia | null;
   sentDatetime: string;
 };
 
@@ -78,8 +81,19 @@ type SharedReview = {
   kind: "movie" | "song" | "tv";
   title: string;
   cover?: string | null;
+  year: number;
   movieId: number | null;
   songId: number | null;
+};
+
+type SharedMedia = {
+  kind: "movie" | "tv" | "song";
+  id: number;
+  title: string;
+  cover: string | null;
+  year: number;
+  rating: number;
+  href: string;
 };
 
 function cx(...classes: Array<string | false | undefined | null>) {
@@ -133,7 +147,8 @@ function ReviewShareCard({ review }: { review: SharedReview }) {
                   ? "Movie"
                   : review.kind === "song"
                     ? "Song"
-                    : "TV Show"}
+                    : "TV Show"}{" "}
+                · {review.year}
               </div>
             </div>
 
@@ -151,6 +166,55 @@ function ReviewShareCard({ review }: { review: SharedReview }) {
         {reviewText}
       </p>
     </div>
+  );
+}
+
+function MediaShareCard({ media }: { media: SharedMedia }) {
+  return (
+    <Link
+      href={media.href}
+      className="mt-1 block max-w-md rounded-xl border border-orange-200 bg-orange-50 p-3 shadow-sm transition hover:border-orange-300 hover:bg-orange-100"
+    >
+      <div className="flex gap-3">
+        <div className="h-20 w-14 shrink-0 overflow-hidden rounded-md border border-orange-200 bg-orange-100">
+          {media.cover ? (
+            <img
+              src={media.cover}
+              alt={media.title}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-500">
+              No cover
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-semibold text-gray-900">
+            {media.title}
+          </div>
+
+          <div className="mt-1 text-xs text-gray-600">
+            {media.kind === "movie"
+              ? "Movie"
+              : media.kind === "song"
+                ? "Song"
+                : "TV Show"}{" "}
+            · {media.year}
+          </div>
+
+          <div className="mt-3 inline-flex items-center gap-1 rounded-full border border-orange-300 bg-orange-200/70 px-2 py-0.5">
+            <Star className="h-3.5 w-3.5 fill-[#F3B413] text-[#F3B413]" />
+            <span className="text-xs font-semibold text-blue-700">
+              {media.rating.toFixed(1)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -234,7 +298,7 @@ export default function Messages() {
     }
   }
 
-  async function loadMembers(conversationId: number) {
+  const loadMembers = useCallback(async (conversationId: number) => {
     const res = await api.get<MemberRow[]>(
       `/messages/conversations/${conversationId}/members`,
       { headers: authHeaders() }
@@ -242,7 +306,7 @@ export default function Messages() {
     const map: Record<number, MemberRow> = {};
     for (const m of res.data) map[m.userId] = m;
     setMemberMap(map);
-  }
+  }, []);
 
   async function fetchMe() {
     const res = await api.get<CurrentUser>("/current_user", {
@@ -278,6 +342,13 @@ export default function Messages() {
       loadOlderMessages().catch(console.log);
     }
   }
+
+  const refreshConversations = useCallback(async () => {
+    const res = await api.get<ConversationRow[]>("/messages/conversations", {
+      headers: authHeaders(),
+    });
+    setConversations(res.data);
+  }, []);
 
   const ensureWs = useCallback(() => {
     if (
@@ -378,7 +449,7 @@ export default function Messages() {
       wsRef.current = null;
       subscribedConvRef.current = null;
     };
-  }, []);
+  }, [refreshConversations]);
 
   async function createDmWith(friendUserId: number) {
     const res = await api.post<{ conversationId: number }>(
@@ -448,14 +519,7 @@ export default function Messages() {
     }
   }
 
-  async function refreshConversations() {
-    const res = await api.get<ConversationRow[]>("/messages/conversations", {
-      headers: authHeaders(),
-    });
-    setConversations(res.data);
-  }
-
-  async function openConversation(conv: ConversationRow) {
+  const openConversation = useCallback(async (conv: ConversationRow) => {
     shouldStickToBottomRef.current = true;
     setHasMoreOlder(true);
     setLoadingOlder(false);
@@ -514,7 +578,7 @@ export default function Messages() {
     );
 
     await refreshConversations();
-  }
+  }, [ensureWs, loadMembers, refreshConversations]);
 
   async function sendMessage() {
     if (!selected) return;
@@ -556,6 +620,7 @@ export default function Messages() {
     };
   }
 
+
   useEffect(() => {
     const targetConversationId = Number(conversationIdFromUrl);
 
@@ -574,7 +639,7 @@ export default function Messages() {
         })
         .catch(console.error);
     }
-  }, [conversationIdFromUrl, conversations, router]);
+  }, [conversationIdFromUrl, conversations, router, openConversation]);
 
 
   useEffect(() => {
@@ -586,7 +651,7 @@ export default function Messages() {
     return () => {
       wsRef.current?.close();
     };
-  }, [ensureWs]);
+  }, [ensureWs, refreshConversations]);
 
   const headerTitle = selected
     ? selected.isGroup
@@ -884,6 +949,8 @@ export default function Messages() {
 
                           {m.messageType === "review_share" && m.sharedReview ? (
                             <ReviewShareCard review={m.sharedReview} />
+                          ) : m.messageType === "media_share" && m.sharedMedia ? (
+                            <MediaShareCard media={m.sharedMedia} />
                           ) : (
                             <div className="text-sm leading-tight text-foreground/90 whitespace-pre-wrap break-words">
                               {m.messageText}
