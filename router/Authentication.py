@@ -1,6 +1,7 @@
 # to get a string like this run:
 # openssl rand -hex 32
 import os
+import secrets
 from typing import Annotated
 
 import secrets
@@ -181,8 +182,7 @@ async def signup(user_create: UserCreate, session: SessionDep) -> SignupResponse
     user = get_user(user_create.username, session)
     if user is not None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken."
         )
 
     recovery_code = secrets.token_urlsafe(12)
@@ -234,6 +234,20 @@ async def login(
     return create_access_token(form_data.username)
 
 
+@router.post("/recovery-code")
+async def generate_recovery_code(
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: SessionDep,
+):
+    recovery_code = secrets.token_urlsafe(12)
+
+    current_user.recovery_code_hash = get_password_hash(recovery_code)
+    session.add(current_user)
+    session.commit()
+
+    return {"recovery_code": recovery_code}
+
+
 @router.post("/forgot-password")
 async def forgot_password(
     data: ForgotPasswordRequest,
@@ -258,6 +272,7 @@ async def forgot_password(
     session.commit()
 
     return {"message": "Password reset successfully."}
+
 
 # get /current user - returns the full profile of the current authenticated user
 @router.get("/current_user", response_model=UserProfilePublic)

@@ -75,6 +75,12 @@ export default function MediaReviews({
     // Memoized endpoint for current media item
     const endpoint = useMemo(() => getEndpoint(mediaType, mediaId), [mediaType, mediaId]);
 
+    const [page, setPage] = useState(1);
+
+    const [hasMore, setHasMore] = useState(false);
+
+    const PAGE_SIZE = 8;
+
     // Toggle expanded state for a review card
     function toggleReview(reviewId: number) {
         setExpandedReviews((prev) => ({
@@ -87,6 +93,7 @@ export default function MediaReviews({
     useEffect(() => {
         setExpandedReviews({});
         setSort("newest");
+        setPage(1);
     }, [mediaType, mediaId]);
 
     // Fetch reviews when endpoint changes
@@ -100,20 +107,36 @@ export default function MediaReviews({
                     headers: {
                         Accept: "application/json",
                     },
+                    params: {
+                        page,
+                        size: PAGE_SIZE,
+                    },
                 });
 
-                setReviews(response.data ?? []);
+                const items = response.data?.items ?? response.data ?? [];
+
+                setReviews((prev) => {
+                    if (page === 1) return items;
+
+                    const existingIds = new Set(prev.map((review) => review.reviewId));
+                    const newItems = items.filter(
+                        (review: MediaReview) => !existingIds.has(review.reviewId)
+                    );
+
+                    return [...prev, ...newItems];
+                });
+
+                setHasMore(items.length === PAGE_SIZE);
             } catch (err) {
                 console.error(err);
                 setReviews([]);
-                setError("Could not load reviews.");
             } finally {
                 setLoading(false);
             }
         }
 
         void fetchMediaReviews();
-    }, [endpoint]);
+    }, [endpoint, page]);
 
     // Memoized sorted reviews list based on selected sort mode
     const sortedReviews = useMemo(() => {
@@ -158,7 +181,7 @@ export default function MediaReviews({
             </div>
 
             <div className="mt-3">
-                {loading ? (
+                {loading && reviews.length === 0 ? (
                     // Loading skeleton cards
                     <div className="space-y-3">
                         {Array.from({ length: 3 }).map((_, index) => (
@@ -354,6 +377,20 @@ export default function MediaReviews({
                                 );
                             })}
                         </motion.div>
+
+                        {hasMore && (
+                            <div className="mt-4 flex justify-center">
+                                <button
+                                    type="button"
+                                    onClick={() => setPage((prev) => prev + 1)}
+                                    disabled={loading}
+                                    className="rounded-full border border-orange-300 bg-orange-100 px-5 py-2 text-sm font-semibold text-gray-800 hover:bg-orange-200 disabled:opacity-60"
+                                >
+                                    {loading ? "Loading..." : "Show more"}
+                                </button>
+                            </div>
+                        )}
+
                     </>
                 )}
             </div>

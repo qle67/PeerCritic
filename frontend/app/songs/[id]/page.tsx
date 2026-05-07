@@ -190,14 +190,14 @@ export default function Page() {
   // Render the Song detail page UI
   return (
     // Outer container
-    <div className="mx-auto">
+    <div className="mx-auto pb-20">
       {/* Render the navigation bar at the top of the page*/}
       <Navbar />
       <div>
         {/* Only show content when song data is loaded */}
         {song !== undefined && (
           <>
-            <div className="mt-6 flex w-full">
+            <div className="mt-6 flex w-full gap-8 px-8">
               {/* Left column for poster, genres and information of a song */}
               <div className="grow-1">
                 <div className="flex flex-col items-center">
@@ -315,14 +315,14 @@ export default function Page() {
               <div className="grow-1 overflow-x-clip">
                 <div className="text-lg font-bold justify-self-center mt-5">Similar Songs</div>
 
-                <div className="mt-2 space-y-2">
+                <div className="mt-2 h-[740px] space-y-2 overflow-y-auto pr-2 snap-y snap-mandatory scroll-smooth">
                   {similarSongs.map((similarSong) => (
                     <div
                       key={similarSong.songId}
-                      className="relative origin-right transition-transform duration-200 hover:-translate-x-2 hover:z-10"
+                      className="relative h-[140px] snap-start snap-always origin-right transition-transform duration-200 hover:-translate-x-2 hover:z-10"
                     >
-                      <Link href={"/songs/" + similarSong.songId} className="block">
-                        <Card className="w-90 justify-self-center border border-orange-400 bg-orange-200 shadow-sm transition-all duration-200 hover:border-orange-500 hover:shadow-lg">
+                      <Link href={"/songs/" + similarSong.songId} className="block h-full">
+                        <Card className="h-full w-90 justify-self-center border border-orange-400 bg-orange-200 shadow-sm transition-all duration-200 hover:border-orange-500 hover:shadow-lg">
                           <CardHeader>
                             <CardTitle className="line-clamp-1 transition-colors hover:text-orange-700">
                               {similarSong.songName}

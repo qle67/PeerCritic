@@ -20,6 +20,7 @@ export default function Page() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);    //tracks if the user clicks create account at least once
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
 
   const [usernameError, setUsernameError] = useState("");
 
@@ -42,6 +43,8 @@ export default function Page() {
   // Signup function runs when the Create Account button is clicked
   async function signup(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
+
+    if (isCreatingAccount) return;
     // activates validation error visibility across all fields
     setIsSubmitted(true);
 
@@ -53,6 +56,7 @@ export default function Page() {
     }
 
     try {
+      setIsCreatingAccount(true);
       // Send a POST request to the backend /signup endpoint with all form data as a JSON body
       const response = await axios.post("http://localhost:8000/signup", {
         username,
@@ -75,6 +79,8 @@ export default function Page() {
       } else {
         setUsernameError("Something went wrong. Try again.");
       }
+    } finally {
+      setIsCreatingAccount(false);
     }
   }
 
@@ -250,7 +256,14 @@ export default function Page() {
               {/* Action buttons */}
               <FieldGroup>
                 <Field>
-                  <Button className="bg-orange-400 hover:bg-orange-800" type="button" onClick={e => signup(e)}>Create Account</Button>
+                  <Button
+                    className="bg-orange-400 hover:bg-orange-800 disabled:opacity-60"
+                    type="button"
+                    onClick={e => signup(e)}
+                    disabled={isCreatingAccount}
+                  >
+                    {isCreatingAccount ? "Creating account..." : "Create Account"}
+                  </Button>
                   <Button
                     className="bg-transparent border-orange-400"
                     variant="outline"

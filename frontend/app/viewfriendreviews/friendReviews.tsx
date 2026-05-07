@@ -74,6 +74,12 @@ export default function FriendReviews({
     // State to track sort mode
     const [sort, setSort] = useState<SortMode>("newest");
 
+    const [page, setPage] = useState(1);
+
+    const [hasMore, setHasMore] = useState(false);
+
+    const PAGE_SIZE = 8;
+
     // Memoize the endpoint so it only changes when media type or id changes
     const endpoint = useMemo(() => getEndpoint(mediaType, mediaId), [mediaType, mediaId]);
 
@@ -89,6 +95,8 @@ export default function FriendReviews({
     useEffect(() => {
         setExpandedReviews({});
         setSort("newest");
+        setPage(1);
+        setHasMore(false);
     }, [mediaType, mediaId]);
 
     // Fetch friend reviews when the endpoint changes
@@ -117,10 +125,26 @@ export default function FriendReviews({
                         Accept: "application/json",
                         Authorization: `Bearer ${token}`,
                     },
+                    params: {
+                        page,
+                        size: PAGE_SIZE,
+                    },
                 });
 
-                // Store the returned review data in state
-                setReviews(response.data ?? []);
+                const items = response.data?.items ?? response.data ?? [];
+
+                setReviews((prev) => {
+                    if (page === 1) return items;
+
+                    const existingIds = new Set(prev.map((review) => review.reviewId));
+                    const newItems = items.filter(
+                        (review: FriendReview) => !existingIds.has(review.reviewId)
+                    );
+
+                    return [...prev, ...newItems];
+                });
+
+                setHasMore(items.length === PAGE_SIZE);
                 setIsLoggedIn(true);
             } catch (err) {
                 console.error(err);
@@ -144,7 +168,7 @@ export default function FriendReviews({
         }
 
         void fetchFriendReviews();
-    }, [endpoint]);
+    }, [endpoint, page]);
 
     // Build sorted review list
     const sortedReviews = useMemo(() => {
@@ -182,7 +206,6 @@ export default function FriendReviews({
     // Render the friend reviews section UI
     return (
         <div className="mt-8">
-            {/*Section header*/}
             <div className="bg-orange-300 justify-self-center w-90 border-orange-400 border-3 rounded-lg p-1">
                 <div className="text-xl font-bold justify-self-center mt-1">
                     Your Friends&apos; Ratings
@@ -197,7 +220,7 @@ export default function FriendReviews({
                             Log in to see your friends&apos; reviews.
                         </CardContent>
                     </Card>
-                ) : loading ? (
+                ) : loading && reviews.length === 0 ? (
                     /*Animated skeleton cards while reviews are loading*/
                     <div className="space-y-3">
                         {Array.from({ length: 3 }).map((_, index) => (
@@ -390,6 +413,19 @@ export default function FriendReviews({
                                 );
                             })}
                         </motion.div>
+
+                        {hasMore && (
+                            <div className="mt-4 flex justify-center">
+                                <button
+                                    type="button"
+                                    onClick={() => setPage((prev) => prev + 1)}
+                                    disabled={loading}
+                                    className="rounded-full border border-orange-300 bg-orange-100 px-5 py-2 text-sm font-semibold text-gray-800 hover:bg-orange-200 disabled:opacity-60"
+                                >
+                                    {loading ? "Loading..." : "Show more"}
+                                </button>
+                            </div>
+                        )}
                     </>
                 )}
             </div>

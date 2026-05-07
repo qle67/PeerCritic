@@ -192,6 +192,8 @@ async def get_friend_reviews_for_movie(
     movie_id: int,
     current_user: Annotated[User, Depends(get_current_user)],
     session: SessionDep,
+    page: int = 1,
+    size: int = 8,
 ):
     friend_ids = get_accepted_friend_ids(current_user.user_id, session)
 
@@ -199,27 +201,31 @@ async def get_friend_reviews_for_movie(
         return []
 
     movie = session.exec(
-        select(Movie)
-        .where(Movie.movie_id == movie_id)
-        .options(
-            selectinload(Movie.reviews)
-            .selectinload(Review.user)
-            .selectinload(User.profile)
-        )
+        select(Movie).where(Movie.movie_id == movie_id)
     ).first()
 
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
 
-    # Filter only reviews written by accepted friends
-    friend_reviews = [
-        review
-        for review in movie.reviews
-        if review.user_id is not None and review.user_id in friend_ids
-    ]
+    stmt = (
+        select(Review)
+        .where(
+            Review.movie_id == movie_id,
+            Review.user_id.in_(friend_ids),
+        )
+        .options(
+            selectinload(Review.user).selectinload(User.profile)
+        )
+        .order_by(Review.review_id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+
+    reviews = session.exec(stmt).all()
 
     out: list[FriendReviewOut] = []
-    for review in sorted(friend_reviews, key=lambda r: r.review_id or 0, reverse=True):
+
+    for review in reviews:
         if review.user is None:
             continue
 
@@ -253,6 +259,8 @@ async def get_friend_reviews_for_song(
     song_id: int,
     current_user: Annotated[User, Depends(get_current_user)],
     session: SessionDep,
+    page: int = 1,
+    size: int = 8,
 ):
     friend_ids = get_accepted_friend_ids(current_user.user_id, session)
 
@@ -260,27 +268,31 @@ async def get_friend_reviews_for_song(
         return []
 
     song = session.exec(
-        select(Song)
-        .where(Song.song_id == song_id)
-        .options(
-            selectinload(Song.reviews)
-            .selectinload(Review.user)
-            .selectinload(User.profile)
-        )
+        select(Song).where(Song.song_id == song_id)
     ).first()
 
     if not song:
         raise HTTPException(status_code=404, detail="Song not found")
 
-    # Filter only reviews written by accepted friends
-    friend_reviews = [
-        review
-        for review in song.reviews
-        if review.user_id is not None and review.user_id in friend_ids
-    ]
+    stmt = (
+        select(Review)
+        .where(
+            Review.song_id == song_id,
+            Review.user_id.in_(friend_ids),
+        )
+        .options(
+            selectinload(Review.user).selectinload(User.profile)
+        )
+        .order_by(Review.review_id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+
+    reviews = session.exec(stmt).all()
 
     out: list[FriendReviewOut] = []
-    for review in sorted(friend_reviews, key=lambda r: r.review_id or 0, reverse=True):
+
+    for review in reviews:
         if review.user is None:
             continue
 
@@ -308,27 +320,36 @@ async def get_friend_reviews_for_song(
     return out
 
 
-# Get all public reviews for a movie
 @router.get("/media/reviews/movie/{movie_id}", response_model=list[MediaReviewOut])
 async def get_media_reviews_for_movie(
     movie_id: int,
     session: SessionDep,
+    page: int = 1,
+    size: int = 8,
 ):
     movie = session.exec(
-        select(Movie)
-        .where(Movie.movie_id == movie_id)
-        .options(
-            selectinload(Movie.reviews)
-            .selectinload(Review.user)
-            .selectinload(User.profile)
-        )
+        select(Movie).where(Movie.movie_id == movie_id)
     ).first()
 
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
 
+    stmt = (
+        select(Review)
+        .where(Review.movie_id == movie_id)
+        .options(
+            selectinload(Review.user).selectinload(User.profile)
+        )
+        .order_by(Review.review_id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+
+    reviews = session.exec(stmt).all()
+
     out: list[MediaReviewOut] = []
-    for review in sorted(movie.reviews, key=lambda r: r.review_id or 0, reverse=True):
+
+    for review in reviews:
         if review.user is None:
             continue
 
@@ -356,27 +377,36 @@ async def get_media_reviews_for_movie(
     return out
 
 
-# Get all public reviews for a song
 @router.get("/media/reviews/song/{song_id}", response_model=list[MediaReviewOut])
 async def get_media_reviews_for_song(
     song_id: int,
     session: SessionDep,
+    page: int = 1,
+    size: int = 8,
 ):
     song = session.exec(
-        select(Song)
-        .where(Song.song_id == song_id)
-        .options(
-            selectinload(Song.reviews)
-            .selectinload(Review.user)
-            .selectinload(User.profile)
-        )
+        select(Song).where(Song.song_id == song_id)
     ).first()
 
     if not song:
         raise HTTPException(status_code=404, detail="Song not found")
 
+    stmt = (
+        select(Review)
+        .where(Review.song_id == song_id)
+        .options(
+            selectinload(Review.user).selectinload(User.profile)
+        )
+        .order_by(Review.review_id.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+
+    reviews = session.exec(stmt).all()
+
     out: list[MediaReviewOut] = []
-    for review in sorted(song.reviews, key=lambda r: r.review_id or 0, reverse=True):
+
+    for review in reviews:
         if review.user is None:
             continue
 

@@ -205,7 +205,7 @@ export default function Page() {
   // Render movie detail page UI
   return (
     // Outer page container
-    <div className="mx-auto">
+    <div className="mx-auto pb-20">
       {/* Render navigation bar at the top of the page */}
       <Navbar />
       <div>
@@ -266,26 +266,36 @@ export default function Page() {
 
                 {/* Episode list shown only for TV shows */}
                 {movie.episodes.length > 0 && (
-                  <div className="flex flex-col items-center">
-                    <div className="text-lg font-bold mt-5">Episodes</div>
+                  <div className="mt-5 flex flex-col items-center">
+                    <div className="text-lg font-bold">Episodes</div>
 
-                    {movie.episodes.map((episode) => (
-                      <Card key={episode.episodeId} className="w-90 mt-1 bg-orange-200 border-orange-400 border mt-2">
-                        <CardHeader>
-                          <CardTitle>Episode {episode.episodeNumber}</CardTitle>
-                          <CardDescription>{episode.episodeName}</CardDescription>
-                          <CardAction>Season {episode.season}</CardAction>
-                        </CardHeader>
-                      </Card>
-                    ))}
+                    <div className="mt-2 max-h-56 w-90 overflow-y-auto rounded-lg border-2 border-orange-300 bg-orange-100 p-2">
+                      {movie.episodes.map((episode) => (
+                        <div
+                          key={episode.episodeId}
+                          className="mb-1 rounded-md border border-orange-300 bg-orange-200 px-2 py-1 text-sm"
+                        >
+                          <div className="flex justify-between gap-2">
+                            <span className="font-bold">
+                              S{episode.season} E{episode.episodeNumber}
+                            </span>
+                            <span className="truncate text-right">
+                              {episode.episodeName}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 {/* Friend reviews section */}
-                <FriendReviews
-                  mediaType={movie.episodes.length > 0 ? "show" : "movie"}
-                  mediaId={movie.movieId}
-                />
+                <div className="mt-5">
+                  <FriendReviews
+                    mediaType={movie.episodes.length > 0 ? "show" : "movie"}
+                    mediaId={movie.movieId}
+                  />
+                </div>
               </div>
 
               {/* Center column for title, rating, actions, trailer, and reviews */}
@@ -375,14 +385,14 @@ export default function Page() {
                   Similar Movies/TV Shows
                 </div>
 
-                <div className="mt-2 space-y-2">
+                <div className="mt-2 h-[740px] space-y-2 overflow-y-auto pr-2 snap-y snap-mandatory scroll-smooth">
                   {similarMovies.map((similarMovie) => (
                     <div
                       key={similarMovie.movieId}
-                      className="relative origin-right transition-transform duration-200 hover:-translate-x-2 hover:z-10"
+                      className="relative h-[140px] snap-start snap-always origin-right transition-transform duration-200 hover:-translate-x-2 hover:z-10"
                     >
-                      <Link href={"/movies/" + similarMovie.movieId} className="block">
-                        <Card className="w-90 justify-self-center border border-orange-400 bg-orange-200 shadow-sm transition-all duration-200 hover:border-orange-500 hover:shadow-lg">
+                      <Link href={"/movies/" + similarMovie.movieId} className="block h-full">
+                        <Card className="h-full w-90 justify-self-center border border-orange-400 bg-orange-200 shadow-sm transition-all duration-200 hover:border-orange-500 hover:shadow-lg">
                           <CardHeader>
                             <CardTitle className="line-clamp-1 transition-colors hover:text-orange-700">
                               {similarMovie.movieName}
