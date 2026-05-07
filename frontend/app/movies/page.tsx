@@ -21,7 +21,7 @@ import {
   PaginationPrevious
 } from "@/components/ui/pagination";
 
-// Define TypeScript type for Search Movies object returned by API
+// Define type for Search Movies object returned by API
 type Movie = {
   movieId: number;
   movieName: string;
@@ -32,73 +32,28 @@ type Movie = {
   movieRatingCount: number;
 }
 
-// Define TypeScript type for Search Movies Page object returned by API
-type MoviePage = {
-  items: Movie[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-}
-
-// Define TypeScript type for Get Directors object returned by API
+// Define type for Get Directors object returned by API
 type Director = {
   directorId: number;
   directorName: string;
 }
 
-// Define TypeScript type for Get Directors Page object returned by API
-type DirectorPage = {
-  items: Director[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-}
-
-// Define TypeScript type for Get Actors object returned by API
+// Define type for Get Actors object returned by API
 type Actor = {
   actorId: number;
   actorName: string;
 }
 
-// Define TypeScript type for Get Actors Page object returned by API
-type ActorPage = {
-  items: Actor[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-}
-
-// Define TypeScript type for Get Writers object returned by API
+// Define type for Get Writers object returned by API
 type Writer = {
   writerId: number;
   writerName: string;
 }
 
-// Define TypeScript type for Get Writers Page object returned by API
-type WriterPage = {
-  items: Writer[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-}
-
-// Define TypeScript type for Get Genres object returned by API
+// Define type for Get Genres object returned by API
 type Genre = {
   genreId: number;
   genreName: string;
-}
-
-// Define TypeScript type for Get Genres Page object returned by API
-type GenrePage = {
-  items: Genre[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
 }
 
 // Export the default page component rendered at the /movies route
@@ -141,7 +96,8 @@ export default function Page() {
 
   // State to hold the selected genre
   const [selectedGenre, setSelectedGenre] = useState<string>("");
-
+  
+  // State to hold the loading movies
   // State to hold loading state
   const [loadingMovies, setLoadingMovies] = useState(false);
 
@@ -156,7 +112,7 @@ export default function Page() {
     setSelectedWriter("");
     setSelectedGenre("");
   }
-
+  
   function onSearchTextChange(text: string) {
     reset();
     setSearchText(text);
@@ -505,7 +461,9 @@ export default function Page() {
               <div className="relative transition-transform duration-200 hover:scale-[1.03] hover:z-10">
                 <Card className="w-90 mt-3 justify-self-center bg-orange-200 border-orange-400 border-1 pt-0 overflow-hidden transition-all duration-200 hover:border-orange-500 hover:shadow-md">
                   <Link href={"/movies/" + movie.movieId} className="h-full w-full">
-                    <img src={movie.cover} alt={movie.movieName} className="h-full w-full object-cover" />
+                    <div className="w-full aspect-[2/3] overflow-hidden">
+                      <img src={movie.cover} alt={movie.movieName} className="h-full w-full object-cover"/>
+                    </div>
                   </Link>
                   <CardHeader>
                     <CardTitle>

@@ -33,28 +33,10 @@ type Show = {
   movieRatingCount: number;
 }
 
-// Define TypeScript type for Search Shows Page object returned by API
-type ShowPage = {
-  items: Show[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-}
-
 // Define TypeScript type for Get Directors object returned by API
 type Director = {
   directorId: number;
   directorName: string;
-}
-
-// Define TypeScript type for Get Directors Page returned by API
-type DirectorPage = {
-  items: Director[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
 }
 
 // Define TypeScript type for Get Actors object returned by API
@@ -63,43 +45,16 @@ type Actor = {
   actorName: string;
 }
 
-// Define TypeScript type for Get Actors Page object returned by API
-type ActorPage = {
-  items: Actor[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-}
-
 // Define TypeScript type for Get Writers object returned by API
 type Writer = {
   writerId: number;
   writerName: string;
 }
 
-// Define TypeScript type for Get Writers Page object returned by API
-type WriterPage = {
-  items: Writer[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
-}
-
 // Define TypeScript type for Get Genres object returned by API
 type Genre = {
   genreId: number;
   genreName: string;
-}
-
-// Define TypeScript type for Get Genres Page object returned by API
-type GenrePage = {
-  items: Genre[];
-  total: number;
-  page: number;
-  size: number;
-  pages: number;
 }
 
 // Export the default page component rendered at the /shows route
@@ -508,7 +463,9 @@ export default function Page() {
               <div className="relative transition-transform duration-200 hover:scale-[1.03] hover:z-10">
                 <Card className="w-90 mt-3 justify-self-center bg-orange-200 border-orange-400 border-1 pt-0 overflow-hidden transition-all duration-200 hover:border-orange-500 hover:shadow-md">
                   <Link href={"/movies/" + show.movieId} className="h-full w-full">
-                    <img src={show.cover} alt={show.movieName} className="h-full w-full object-cover" />
+                    <div className="w-full aspect-[2/3] overflow-hidden">
+                      <img src={show.cover} alt={show.movieName} className="h-full w-full object-cover"/>
+                    </div>
                   </Link>
                   <CardHeader>
                     <CardTitle>
