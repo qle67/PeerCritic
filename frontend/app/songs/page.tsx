@@ -379,7 +379,9 @@ export default function Page() {
               <div className="relative transition-transform duration-200 hover:scale-[1.03] hover:z-10">
                 <Card className="w-90 mt-3 justify-self-center bg-orange-200 border-orange-400 border-1 pt-0 overflow-hidden transition-all duration-200 hover:border-orange-500 hover:shadow-md">
                   <Link href={"/songs/" + song.songId} className="h-full w-full">
-                    <img src={song.cover} alt={song.songName} className="h-full w-full object-cover" />
+                    <div className="w-full aspect-[2/3] overflow-hidden rounded-t-lg border-b border-orange-400">
+                      <img src={song.cover} alt={song.songName} className="h-full w-full object-cover"/>
+                    </div>
                   </Link>
                   <CardHeader>
                     <CardTitle>
